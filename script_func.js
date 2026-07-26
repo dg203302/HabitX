@@ -796,6 +796,41 @@ function showConfirm({ icon = '⚠️', title, message, confirmText = 'Confirmar
 // ─────────────────────────────────────────
 //  CONFIG SECTION
 // ─────────────────────────────────────────
+
+// Age Toggle (Adult Ads)
+const STORE_OVER18 = 'habitx_over18';
+const configAgeItem = document.getElementById('config-age');
+const ageToggle = document.getElementById('age-toggle');
+
+function loadAdultAds() {
+  if (document.getElementById('adult-ads-script')) return;
+  const script = document.createElement('script');
+  script.src = "https://pl30537350.effectivecpmnetwork.com/52/85/57/528557c52adbd4e32c07d63caf6f19c8.js";
+  script.id = 'adult-ads-script';
+  document.body.appendChild(script);
+}
+
+if (configAgeItem && ageToggle) {
+  // Init state
+  const isOver18 = localStorage.getItem(STORE_OVER18) === 'true';
+  if (isOver18) {
+    ageToggle.classList.add('active');
+    loadAdultAds();
+  }
+
+  // Handle click
+  configAgeItem.addEventListener('click', () => {
+    const isActive = ageToggle.classList.toggle('active');
+    localStorage.setItem(STORE_OVER18, isActive);
+    if (isActive) {
+      loadAdultAds();
+    } else {
+      // Recargar la página para limpiar los scripts de ads ya inyectados
+      window.location.reload();
+    }
+  });
+}
+
 document.getElementById('config-reset')?.addEventListener('click', async () => {
   const ok = await showConfirm({
     icon:        '🗑️',

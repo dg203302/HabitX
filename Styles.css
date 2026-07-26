@@ -1642,3 +1642,62 @@ emoji-picker {
   font-size: 1rem;
   color: var(--text-muted);
 }
+
+/* ─────────────────────────────────────
+   AD UNITS
+───────────────────────────────────── */
+
+.ad-unit-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  min-height: 60px;
+  position: relative;
+}
+
+/* Home ad específico */
+#ad-home {
+  height: 70px;
+  margin: 15px 0;
+}
+
+#ad-home > * {
+  transform: scale(0.65);
+  transform-origin: center center;
+}
+
+/* Banner horizontal (728x90 → se escala en móvil) */
+.ad-unit-banner {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px; /* Reducido para no empujar el contenido */
+}
+
+.ad-unit-banner iframe,
+.ad-unit-banner > * {
+  transform: scale(0.55); /* Escala para que el 728x90 entre mejor en mobile */
+  transform-origin: center center;
+}
+
+/* Sidebar vertical (160x600) */
+.ad-unit-sidebar {
+  margin: 20px auto;
+  width: 140px; /* Reducido */
+  height: 200px; /* Cortamos drásticamente la altura para que no sea un bloque inmenso */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.ad-unit-sidebar iframe,
+.ad-unit-sidebar > * {
+  transform: scale(0.85);
+  transform-origin: top center;
+}
