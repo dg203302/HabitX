@@ -36,7 +36,15 @@
                 <h1 class="header-section-title" id="header-title">Mis Eventos</h1>
                 <p class="header-section-subtitle" id="header-subtitle">Registrá tu progreso de hoy</p>
             </div>
-            <div class="header-date" id="header-date"></div>
+            <div class="header-right">
+                <div class="header-date" id="header-date"></div>
+                <button class="header-config-btn" id="header-config-btn" aria-label="Configuración" title="Configuración">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -71,42 +79,6 @@
                 <!-- Ad Unit – Home -->
                 <div class="ad-unit-wrap" id="ad-home">
                     <div id="container-eb13932e443191fa57ff695f3fdf0eb8"></div>
-                </div>
-
-                <!-- Calendario de registros -->
-                <div class="cal-section" id="cal-section">
-                    <div class="cal-header">
-                        <button class="cal-nav-btn" id="cal-prev" aria-label="Mes anterior">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polyline points="15 18 9 12 15 6"/></svg>
-                        </button>
-                        <span class="cal-month-label" id="cal-month-label"></span>
-                        <button class="cal-nav-btn" id="cal-next" aria-label="Mes siguiente">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polyline points="9 18 15 12 9 6"/></svg>
-                        </button>
-                    </div>
-                    <div class="cal-weekdays">
-                        <span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span>
-                    </div>
-                    <div class="cal-grid" id="cal-grid"></div>
-
-                    <!-- Panel de día seleccionado -->
-                    <div class="cal-day-panel" id="cal-day-panel" hidden>
-                        <div class="cal-day-panel-header">
-                            <span class="cal-day-panel-date" id="cal-day-panel-date"></span>
-                            <button class="cal-day-panel-close" id="cal-day-panel-close" aria-label="Cerrar">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            </button>
-                        </div>
-                        <div class="cal-day-events" id="cal-day-events"></div>
-                    </div>
-                </div>
-
-                <!-- Sección: Última vez registrado -->
-                <div class="last-seen-section" id="last-seen-section">
-                    <h3 class="last-seen-heading">Desde el último registro</h3>
-                    <div class="last-seen-list" id="last-seen-list">
-                        <!-- Renderizado por JS -->
-                    </div>
                 </div>
             </div>
         </section>
@@ -163,37 +135,235 @@
 
                 <!-- Calendario de registros previos para el nuevo evento -->
                 <div class="cal-section add-cal-section" id="add-cal-section">
-                    <div class="add-cal-header-label">
-                        <span class="add-cal-title">Registros previos <span class="add-cal-badge" id="add-cal-badge">0</span></span>
-                        <span class="add-cal-hint">Tocá un día para marcarlo</span>
+                    <button class="cal-toggle-btn" id="add-cal-toggle-btn" type="button" aria-expanded="false"
+                        aria-controls="add-cal-body">
+                        <div class="cal-toggle-title">
+                            <svg class="cal-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" width="18" height="18">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <span>Registros previos</span>
+                            <span class="add-cal-badge" id="add-cal-badge">0</span>
+                        </div>
+                        <div class="cal-toggle-right">
+                            <span class="cal-month-badge" id="add-cal-month-badge"></span>
+                            <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" width="18" height="18">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </div>
+                    </button>
+
+                    <div class="cal-body" id="add-cal-body" hidden>
+                        <div class="add-cal-sub-header">
+                            <span class="add-cal-hint">Tocá un día para marcarlo como registro previo</span>
+                        </div>
+                        <div class="cal-header">
+                            <button class="cal-nav-btn" id="add-cal-prev" type="button" aria-label="Mes anterior">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
+                                    height="18">
+                                    <polyline points="15 18 9 12 15 6" />
+                                </svg>
+                            </button>
+                            <span class="cal-month-label" id="add-cal-month-label"></span>
+                            <button class="cal-nav-btn" id="add-cal-next" type="button" aria-label="Mes siguiente">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
+                                    height="18">
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="cal-weekdays">
+                            <span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span>
+                        </div>
+                        <div class="cal-grid" id="add-cal-grid"></div>
                     </div>
-                    <div class="cal-header">
-                        <button class="cal-nav-btn" id="add-cal-prev" aria-label="Mes anterior">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polyline points="15 18 9 12 15 6"/></svg>
-                        </button>
-                        <span class="cal-month-label" id="add-cal-month-label"></span>
-                        <button class="cal-nav-btn" id="add-cal-next" aria-label="Mes siguiente">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polyline points="9 18 15 12 9 6"/></svg>
-                        </button>
-                    </div>
-                    <div class="cal-weekdays">
-                        <span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span>
-                    </div>
-                    <div class="cal-grid" id="add-cal-grid"></div>
                 </div>
 
                 <!-- Ad Unit – Add (banner 728x90) -->
                 <div class="ad-unit-wrap ad-unit-banner">
                     <script>
-                      atOptions = {
-                        'key' : 'f7d4d3c34c111e2a638b16fdd5361e97',
-                        'format' : 'iframe',
-                        'height' : 90,
-                        'width' : 728,
-                        'params' : {}
-                      };
+                        atOptions = {
+                            'key': 'f7d4d3c34c111e2a638b16fdd5361e97',
+                            'format': 'iframe',
+                            'height': 90,
+                            'width': 728,
+                            'params': {}
+                        };
                     </script>
-                    <script src="https://www.highperformanceformat.com/f7d4d3c34c111e2a638b16fdd5361e97/invoke.js"></script>
+                    <script
+                        src="https://www.highperformanceformat.com/f7d4d3c34c111e2a638b16fdd5361e97/invoke.js"></script>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════════════════════
+             SECCIÓN STATS (Estadísticas)
+        ══════════════════════════════ -->
+        <section id="Stats" class="section" aria-label="Estadísticas">
+            <div class="section-inner">
+                <!-- Tarjetas KPI / Métricas destacadas -->
+                <div class="stats-kpi-grid">
+                    <div class="stats-kpi-card">
+                        <div class="stats-kpi-icon">📊</div>
+                        <div class="stats-kpi-info">
+                            <span class="stats-kpi-val" id="stats-total-logs">0</span>
+                            <span class="stats-kpi-lbl">Registros totales</span>
+                        </div>
+                    </div>
+                    <div class="stats-kpi-card">
+                        <div class="stats-kpi-icon">🔥</div>
+                        <div class="stats-kpi-info">
+                            <span class="stats-kpi-val" id="stats-active-streak">0</span>
+                            <span class="stats-kpi-lbl">Racha activa</span>
+                        </div>
+                    </div>
+                    <div class="stats-kpi-card">
+                        <div class="stats-kpi-icon">🎯</div>
+                        <div class="stats-kpi-info">
+                            <span class="stats-kpi-val" id="stats-monthly-pct">0%</span>
+                            <span class="stats-kpi-lbl">Cumplimiento mes</span>
+                        </div>
+                    </div>
+                    <div class="stats-kpi-card">
+                        <div class="stats-kpi-icon">⭐</div>
+                        <div class="stats-kpi-info">
+                            <span class="stats-kpi-val" id="stats-best-habit">—</span>
+                            <span class="stats-kpi-lbl">Hábito estrella</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendario de registros -->
+                <div class="cal-section" id="cal-section">
+                    <button class="cal-toggle-btn" id="cal-toggle-btn" aria-expanded="false" aria-controls="cal-body">
+                        <div class="cal-toggle-title">
+                            <svg class="cal-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" width="18" height="18">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <span>Calendario de registros</span>
+                        </div>
+                        <div class="cal-toggle-right">
+                            <span class="cal-month-badge" id="cal-month-badge"></span>
+                            <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" width="18" height="18">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </div>
+                    </button>
+
+                    <div class="cal-body" id="cal-body" hidden>
+                        <div class="cal-header">
+                            <button class="cal-nav-btn" id="cal-prev" aria-label="Mes anterior">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
+                                    height="18">
+                                    <polyline points="15 18 9 12 15 6" />
+                                </svg>
+                            </button>
+                            <span class="cal-month-label" id="cal-month-label"></span>
+                            <button class="cal-nav-btn" id="cal-next" aria-label="Mes siguiente">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
+                                    height="18">
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="cal-weekdays">
+                            <span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span>
+                        </div>
+                        <div class="cal-grid" id="cal-grid"></div>
+
+                        <!-- Panel de día seleccionado -->
+                        <div class="cal-day-panel" id="cal-day-panel" hidden>
+                            <div class="cal-day-panel-header">
+                                <span class="cal-day-panel-date" id="cal-day-panel-date"></span>
+                                <button class="cal-day-panel-close" id="cal-day-panel-close" aria-label="Cerrar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                        width="16" height="16">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="cal-day-events" id="cal-day-events"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico 1: Evolución temporal -->
+                <div class="stats-chart-card">
+                    <div class="stats-chart-header">
+                        <div class="stats-chart-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                            <span>Evolución en el tiempo</span>
+                        </div>
+                        <select id="stats-timeframe-select" class="stats-select" aria-label="Seleccionar período">
+                            <option value="7">Últimos 7 días</option>
+                            <option value="14" selected>Últimos 14 días</option>
+                            <option value="30">Últimos 30 días</option>
+                        </select>
+                    </div>
+                    <div class="stats-chart-body" id="stats-evolution-chart-container"></div>
+                </div>
+
+                <!-- Gráfico 2: Distribución por Porcentaje de Hábitos -->
+                <div class="stats-chart-card">
+                    <div class="stats-chart-header">
+                        <div class="stats-chart-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
+                                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                                <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                            </svg>
+                            <span>Distribución por Hábito (%)</span>
+                        </div>
+                    </div>
+                    <div class="stats-donut-wrap">
+                        <div class="stats-donut-chart" id="stats-donut-container"></div>
+                        <div class="stats-donut-legend" id="stats-donut-legend"></div>
+                    </div>
+                </div>
+
+                <!-- Gráfico 3: Hábitos por día de la semana -->
+                <div class="stats-chart-card">
+                    <div class="stats-chart-header">
+                        <div class="stats-chart-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span>Constancia por día de la semana</span>
+                        </div>
+                    </div>
+                    <div class="stats-bar-chart" id="stats-weekday-chart"></div>
+                </div>
+
+                <!-- Desglose por Evento -->
+                <div class="stats-chart-card">
+                    <div class="stats-chart-header">
+                        <div class="stats-chart-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
+                                <line x1="8" y1="6" x2="21" y2="6"/>
+                                <line x1="8" y1="12" x2="21" y2="12"/>
+                                <line x1="8" y1="18" x2="21" y2="18"/>
+                                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                <line x1="3" y1="18" x2="3.01" y2="18"/>
+                            </svg>
+                            <span>Desglose por Evento</span>
+                        </div>
+                    </div>
+                    <div class="stats-breakdown-list" id="stats-breakdown-list"></div>
                 </div>
             </div>
         </section>
@@ -218,17 +388,6 @@
 
                 <div class="config-list">
 
-                    <div class="config-item" id="config-age">
-                        <div class="config-item-icon">🔞</div>
-                        <div class="config-item-info">
-                            <span class="config-item-title">Soy mayor de 18 años</span>
-                            <span class="config-item-value">Mostrar contenido sin restricciones</span>
-                        </div>
-                        <div class="toggle-switch" id="age-toggle">
-                            <div class="toggle-thumb"></div>
-                        </div>
-                    </div>
-
                     <div class="config-item danger" id="config-reset">
                         <div class="config-item-icon">🗑️</div>
                         <div class="config-item-info">
@@ -243,15 +402,16 @@
                 <!-- Ad Unit – Config (160x600) -->
                 <div class="ad-unit-wrap ad-unit-sidebar">
                     <script>
-                      atOptions = {
-                        'key' : '5b6b35be8df58ebee70277d1dc83fe6d',
-                        'format' : 'iframe',
-                        'height' : 600,
-                        'width' : 160,
-                        'params' : {}
-                      };
+                        atOptions = {
+                            'key': '5b6b35be8df58ebee70277d1dc83fe6d',
+                            'format': 'iframe',
+                            'height': 600,
+                            'width': 160,
+                            'params': {}
+                        };
                     </script>
-                    <script src="https://www.highperformanceformat.com/5b6b35be8df58ebee70277d1dc83fe6d/invoke.js"></script>
+                    <script
+                        src="https://www.highperformanceformat.com/5b6b35be8df58ebee70277d1dc83fe6d/invoke.js"></script>
                 </div>
             </div>
         </section>
@@ -404,11 +564,17 @@
                 <div class="cal-section hist-cal-section">
                     <div class="cal-header">
                         <button class="cal-nav-btn" id="hist-cal-prev" aria-label="Mes anterior">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polyline points="15 18 9 12 15 6"/></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
+                                height="18">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
                         </button>
                         <span class="cal-month-label" id="hist-cal-month-label"></span>
                         <button class="cal-nav-btn" id="hist-cal-next" aria-label="Mes siguiente">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><polyline points="9 18 15 12 9 6"/></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
+                                height="18">
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
                         </button>
                     </div>
                     <div class="cal-weekdays">
@@ -444,16 +610,16 @@
             <span class="nav-label">Nuevo</span>
         </button>
 
-        <button class="nav-btn" data-section="Config" id="nav-config" aria-label="Configuración">
+        <button class="nav-btn" data-section="Stats" id="nav-stats" aria-label="Estadísticas">
             <div class="nav-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                     stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path
-                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
                 </svg>
             </div>
-            <span class="nav-label">Ajustes</span>
+            <span class="nav-label">Stats</span>
         </button>
     </nav>
 
@@ -474,7 +640,8 @@
 
     <script src="script_func.js" type="module"></script>
     <!-- Home ad invoke -->
-    <script async data-cfasync="false" src="https://pl30537304.effectivecpmnetwork.com/eb13932e443191fa57ff695f3fdf0eb8/invoke.js"></script>
+    <script async data-cfasync="false"
+        src="https://pl30537304.effectivecpmnetwork.com/eb13932e443191fa57ff695f3fdf0eb8/invoke.js"></script>
 </body>
 
 </html>

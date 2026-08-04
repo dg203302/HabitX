@@ -100,6 +100,7 @@ function navigateTo(sectionId) {
   const headerTitles = {
     Home:   { title: 'Mis Eventos',    subtitle: 'Registrá tu progreso de hoy' },
     Add:    { title: 'Nuevo Evento',   subtitle: 'Definí qué querés trackear' },
+    Stats:  { title: 'Estadísticas',   subtitle: 'Análisis de tu rendimiento y constancia' },
     Config: { title: 'Configuración', subtitle: 'Personalizá tu experiencia' },
   };
   const info = headerTitles[sectionId];
@@ -114,6 +115,8 @@ function navigateTo(sectionId) {
   if (sectionId === 'Home') renderEvents();
   // Refresh add-cal on every visit to Add
   if (sectionId === 'Add') { if (typeof renderAddCal === 'function') renderAddCal(); }
+  // Refresh stats on every visit to Stats
+  if (sectionId === 'Stats') { if (typeof renderStats === 'function') renderStats(); }
 }
 
 navBtns.forEach(btn => {
@@ -121,6 +124,10 @@ navBtns.forEach(btn => {
   btn.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateTo(btn.dataset.section); }
   });
+});
+
+document.getElementById('header-config-btn')?.addEventListener('click', () => {
+  navigateTo('Config');
 });
 
 // ─────────────────────────────────────────
@@ -139,6 +146,8 @@ updateHeaderDate();
 function renderEvents() {
   const list   = document.getElementById('events-list');
   const events = getEvents();
+  const logs   = getLogs();
+  const today  = getTodayStr();
 
   list.innerHTML = '';
 
@@ -158,54 +167,111 @@ function renderEvents() {
 
   events.forEach(ev => {
     const logged = isLoggedToday(ev.id);
+
+    // Calculate last seen counter for this specific event
+    const evLogs = logs
+      .filter(l => l.eventId === ev.id)
+      .sort((a, b) => b.date.localeCompare(a.date)); // most recent first
+
+    const lastDate = evLogs.length > 0 ? evLogs[0].date : null;
+
+    let daysSince = null;
+    let cardClass = '';
+    let daysDisplay = '—';
+    let daysLabel   = 'sin registros';
+    let subText     = 'Nunca registrado';
+
+    if (lastDate) {
+      const [y, m, d] = lastDate.split('-').map(Number);
+      const last = new Date(y, m - 1, d);
+      const [ty, tm, td] = today.split('-').map(Number);
+      const todayDate = new Date(ty, tm - 1, td);
+      daysSince = Math.round((todayDate - last) / 86400000);
+
+      if (daysSince === 0) {
+        daysDisplay = '✓';
+        daysLabel   = 'hoy';
+        cardClass   = 'recent';
+        subText     = 'Último registro: hoy';
+      } else if (daysSince === 1) {
+        daysDisplay = '1';
+        daysLabel   = 'día';
+        cardClass   = 'recent';
+        subText     = 'Último registro: ayer';
+      } else {
+        daysDisplay = String(daysSince);
+        daysLabel   = daysSince === 1 ? 'día' : 'días';
+        cardClass   = daysSince >= 7 ? 'overdue' : '';
+        const fmt = last.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+        subText = `Último registro: ${fmt}`;
+      }
+    } else {
+      cardClass = 'never';
+    }
+
     const card = document.createElement('div');
     card.className = `event-card${logged ? ' registered' : ''}`;
     card.dataset.id = ev.id;
 
     card.innerHTML = `
-      <div class="event-emoji-wrap">${ev.emoji || '✨'}</div>
-      <div class="event-info">
-        <span class="event-name">${escHtml(ev.name)}</span>
-        <span class="event-desc">${escHtml(ev.desc || '')}</span>
-        <div class="event-status">
-          <span class="status-dot"></span>
-          <span class="status-text">${logged ? 'Registrado hoy ✓' : 'Sin registrar hoy'}</span>
+      <div class="event-card-main">
+        <div class="event-emoji-wrap">${ev.emoji || '✨'}</div>
+        <div class="event-info">
+          <span class="event-name">${escHtml(ev.name)}</span>
+          <span class="event-desc">${escHtml(ev.desc || '')}</span>
+          <div class="event-status">
+            <span class="status-dot"></span>
+            <span class="status-text">${logged ? 'Registrado hoy ✓' : 'Sin registrar hoy'}</span>
+          </div>
+        </div>
+        <div class="event-actions">
+          <button
+            class="btn-register${logged ? ' registered-btn' : ''}"
+            aria-label="${logged ? 'Quitar registro de hoy' : 'Registrar hoy'}"
+            data-id="${ev.id}"
+            title="${logged ? 'Quitar registro' : 'Registrar hoy'}"
+          >
+            ${logged
+              ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                   <polyline points="20 6 9 17 4 12"/>
+                 </svg>`
+              : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                   <line x1="12" y1="5" x2="12" y2="19"/>
+                   <line x1="5" y1="12" x2="19" y2="12"/>
+                 </svg>`
+            }
+          </button>
+          <button
+            class="btn-cfg"
+            aria-label="Detalles de ${escHtml(ev.name)}"
+            data-id="${ev.id}"
+            title="Ver detalles"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="2.5"/>
+              <circle cx="19" cy="12" r="2.5"/>
+              <circle cx="5" cy="12" r="2.5"/>
+            </svg>
+          </button>
         </div>
       </div>
-      <div class="event-actions">
-        <button
-          class="btn-register${logged ? ' registered-btn' : ''}"
-          aria-label="${logged ? 'Quitar registro de hoy' : 'Registrar hoy'}"
-          data-id="${ev.id}"
-          title="${logged ? 'Quitar registro' : 'Registrar hoy'}"
-        >
-          ${logged
-            ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                 <polyline points="20 6 9 17 4 12"/>
-               </svg>`
-            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                 <line x1="12" y1="5" x2="12" y2="19"/>
-                 <line x1="5" y1="12" x2="19" y2="12"/>
-               </svg>`
-          }
-        </button>
-        <button
-          class="btn-cfg"
-          aria-label="Detalles de ${escHtml(ev.name)}"
-          data-id="${ev.id}"
-          title="Ver detalles"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="2.5"/>
-            <circle cx="19" cy="12" r="2.5"/>
-            <circle cx="5" cy="12" r="2.5"/>
+      <div class="event-card-counter ${cardClass}">
+        <div class="event-counter-info">
+          <svg class="event-counter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
           </svg>
-        </button>
+          <span class="event-counter-sub">${subText}</span>
+        </div>
+        <div class="event-counter-pill">
+          <span class="event-counter-num">${daysDisplay}</span>
+          <span class="event-counter-label">${daysLabel}</span>
+        </div>
       </div>`;
 
     // Register button
     card.querySelector('.btn-register').addEventListener('click', () => {
-      const nowLogged = toggleLog(ev.id);
+      toggleLog(ev.id);
       renderEvents(); // full re-render keeps it simple & consistent
     });
 
@@ -640,7 +706,12 @@ function renderAddCal() {
 
   const today = getTodayStr();
   const monthDate = new Date(addCalYear, addCalMonth, 1);
-  label.textContent = monthDate.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const formattedMonth = monthDate.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  label.textContent = formattedMonth;
+
+  const monthBadge = document.getElementById('add-cal-month-badge');
+  if (monthBadge) monthBadge.textContent = formattedMonth;
+
   if (badge) badge.textContent = addCalDates.size;
 
   const firstDay    = new Date(addCalYear, addCalMonth, 1).getDay();
@@ -700,6 +771,17 @@ document.getElementById('add-cal-next')?.addEventListener('click', () => {
   if (addCalMonth > 11) { addCalMonth = 0; addCalYear++; }
   renderAddCal();
 });
+
+const addCalToggleBtn = document.getElementById('add-cal-toggle-btn');
+const addCalBody = document.getElementById('add-cal-body');
+
+if (addCalToggleBtn && addCalBody) {
+  addCalToggleBtn.addEventListener('click', () => {
+    const isExpanded = addCalToggleBtn.getAttribute('aria-expanded') === 'true';
+    addCalToggleBtn.setAttribute('aria-expanded', !isExpanded);
+    addCalBody.hidden = isExpanded;
+  });
+}
 
 // ─────────────────────────────────────────
 //  ADD FORM – Submit
@@ -880,7 +962,10 @@ function renderCalendar() {
 
   // Month label
   const monthDate = new Date(calYear, calMonth, 1);
-  label.textContent = monthDate.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const formattedMonth = monthDate.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  label.textContent = formattedMonth;
+  const badge = document.getElementById('cal-month-badge');
+  if (badge) badge.textContent = formattedMonth;
 
   // Build set: dateStr -> count of logs
   const logCountByDay = {};
@@ -975,17 +1060,18 @@ function openCalPanel(dateStr) {
 
   panelEvs.innerHTML = '';
 
-  if (events.length === 0) {
-    panelEvs.innerHTML = '<p class="cal-empty-day">No hay eventos creados aún.</p>';
+  const loggedEvents = events.filter(ev => logged.has(ev.id));
+
+  if (loggedEvents.length === 0) {
+    panelEvs.innerHTML = '<p class="cal-empty-day">Sin registros este día.</p>';
   } else {
-    events.forEach(ev => {
-      const isLogged = logged.has(ev.id);
+    loggedEvents.forEach(ev => {
       const row = document.createElement('div');
-      row.className = 'cal-event-row' + (isLogged ? ' logged' : '');
+      row.className = 'cal-event-row logged';
       row.innerHTML = `
         <span class="cal-event-emoji">${ev.emoji || '✨'}</span>
         <span class="cal-event-name">${escHtml(ev.name)}</span>
-        <span class="cal-event-badge ${isLogged ? 'done' : 'miss'}">${isLogged ? '✓ Hecho' : 'Sin registro'}</span>
+        <span class="cal-event-badge done">✓ Hecho</span>
       `;
       panelEvs.appendChild(row);
     });
@@ -1024,94 +1110,349 @@ document.getElementById('cal-day-panel-close')?.addEventListener('click', () => 
   renderCalendar();
 });
 
+// Collapsible Calendar toggle listener
+const calToggleBtn = document.getElementById('cal-toggle-btn');
+const calBody = document.getElementById('cal-body');
+
+if (calToggleBtn && calBody) {
+  calToggleBtn.addEventListener('click', () => {
+    const isExpanded = calToggleBtn.getAttribute('aria-expanded') === 'true';
+    calToggleBtn.setAttribute('aria-expanded', !isExpanded);
+    calBody.hidden = isExpanded;
+  });
+}
+
 // Initial render + refresh after toggle
 const _origRenderEvents = renderEvents;
 renderEvents = function() {
   _origRenderEvents();
   renderCalendar();
-  renderLastSeen();
 };
 
 renderCalendar();
 
 // ─────────────────────────────────────────
-//  LAST SEEN SECTION
+//  STATS SECTION – CHARTS & ANALYTICS
 // ─────────────────────────────────────────
-function renderLastSeen() {
-  const list   = document.getElementById('last-seen-list');
-  const section = document.getElementById('last-seen-section');
-  if (!list) return;
+function renderStats() {
+  const events = getEvents();
+  const logs   = getLogs();
+  const today  = getTodayStr();
+
+  // 1. KPI Cards
+  const totalLogsEl    = document.getElementById('stats-total-logs');
+  const activeStreakEl = document.getElementById('stats-active-streak');
+  const monthlyPctEl   = document.getElementById('stats-monthly-pct');
+  const bestHabitEl    = document.getElementById('stats-best-habit');
+
+  if (totalLogsEl) totalLogsEl.textContent = logs.length;
+
+  // Active Global Streak (consecutive days with at least 1 log)
+  const logDatesSet = new Set(logs.map(l => l.date));
+  let streak = 0;
+  let cursor = today;
+  while (logDatesSet.has(cursor)) {
+    streak++;
+    cursor = prevDay(cursor);
+  }
+  if (activeStreakEl) activeStreakEl.textContent = `${streak} ${streak === 1 ? 'día' : 'días'}`;
+
+  // Monthly Completion Rate % (last 30 days)
+  const days30 = [];
+  let dCursor = today;
+  for (let i = 0; i < 30; i++) {
+    days30.push(dCursor);
+    dCursor = prevDay(dCursor);
+  }
+  const days30Set = new Set(days30);
+  const last30LogsCount = logs.filter(l => days30Set.has(l.date)).length;
+
+  const maxPossible30 = events.length * 30;
+  const monthlyPct = maxPossible30 > 0 ? Math.round((last30LogsCount / maxPossible30) * 100) : 0;
+  if (monthlyPctEl) monthlyPctEl.textContent = `${monthlyPct}%`;
+
+  // Best Habit
+  const habitCounts = {};
+  logs.forEach(l => {
+    habitCounts[l.eventId] = (habitCounts[l.eventId] || 0) + 1;
+  });
+  let bestEvId = null;
+  let maxCount = -1;
+  Object.keys(habitCounts).forEach(id => {
+    if (habitCounts[id] > maxCount) {
+      maxCount = habitCounts[id];
+      bestEvId = id;
+    }
+  });
+  const bestEv = events.find(e => e.id === bestEvId);
+  if (bestHabitEl) {
+    bestHabitEl.textContent = bestEv ? `${bestEv.emoji || '✨'} ${bestEv.name}` : '—';
+  }
+
+  // Render Calendar
+  renderCalendar();
+
+  // 2. Chart 1: Evolution SVG Line Chart
+  renderEvolutionChart();
+
+  // 3. Chart 2: Donut Distribution Chart
+  renderDonutChart();
+
+  // 4. Chart 3: Weekday Performance Bar Chart
+  renderWeekdayChart();
+
+  // 5. Breakdown List
+  renderBreakdownList();
+}
+
+function renderEvolutionChart() {
+  const container = document.getElementById('stats-evolution-chart-container');
+  if (!container) return;
+
+  const select = document.getElementById('stats-timeframe-select');
+  const timeframe = select ? parseInt(select.value, 10) || 14 : 14;
+
+  const logs  = getLogs();
+  const today = getTodayStr();
+
+  // Build last N days array (oldest to newest)
+  const days = [];
+  let cursor = today;
+  for (let i = 0; i < timeframe; i++) {
+    days.unshift(cursor);
+    cursor = prevDay(cursor);
+  }
+
+  // Count logs per day
+  const counts = days.map(d => logs.filter(l => l.date === d).length);
+  const maxVal = Math.max(...counts, 4);
+
+  // Dimensions
+  const svgWidth  = Math.max(container.clientWidth || 320, 320);
+  const svgHeight = 160;
+  const paddingX  = 24;
+  const paddingTop = 24;
+  const paddingBottom = 30;
+
+  const chartW = svgWidth - paddingX * 2;
+  const chartH = svgHeight - paddingTop - paddingBottom;
+
+  const stepX = days.length > 1 ? chartW / (days.length - 1) : chartW;
+
+  const points = counts.map((c, i) => {
+    const x = paddingX + i * stepX;
+    const y = paddingTop + chartH - (c / maxVal) * chartH;
+    return { x, y, val: c, date: days[i] };
+  });
+
+  // Path data
+  let dPath = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const cx = (prev.x + curr.x) / 2;
+    dPath += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
+  }
+
+  const dArea = `${dPath} L ${points[points.length - 1].x} ${svgHeight - paddingBottom} L ${points[0].x} ${svgHeight - paddingBottom} Z`;
+
+  // X labels step
+  const labelStep = timeframe > 14 ? 5 : timeframe > 7 ? 2 : 1;
+
+  let labelsSvg = '';
+  points.forEach((p, i) => {
+    if (i % labelStep === 0 || i === points.length - 1) {
+      const [y, m, d] = p.date.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const fmtStr = dateObj.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }).replace('.','');
+      labelsSvg += `<text x="${p.x}" y="${svgHeight - 8}" text-anchor="middle" font-size="10" fill="var(--text-muted)">${fmtStr}</text>`;
+    }
+  });
+
+  let dotsSvg = '';
+  points.forEach(p => {
+    dotsSvg += `
+      <circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--accent)" stroke="#ffffff" stroke-width="1.5" />
+      ${p.val > 0 ? `<text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent-light)">${p.val}</text>` : ''}
+    `;
+  });
+
+  container.innerHTML = `
+    <svg width="100%" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" style="overflow: visible;">
+      <defs>
+        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0"/>
+        </linearGradient>
+      </defs>
+      <line x1="${paddingX}" y1="${paddingTop + chartH}" x2="${svgWidth - paddingX}" y2="${paddingTop + chartH}" stroke="var(--border)" stroke-width="1"/>
+      <path d="${dArea}" fill="url(#chartGrad)" />
+      <path d="${dPath}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      ${dotsSvg}
+      ${labelsSvg}
+    </svg>
+  `;
+}
+
+function renderDonutChart() {
+  const container = document.getElementById('stats-donut-container');
+  const legend = document.getElementById('stats-donut-legend');
+  if (!container || !legend) return;
+
+  const events = getEvents();
+  const logs   = getLogs();
+
+  if (events.length === 0 || logs.length === 0) {
+    container.innerHTML = `<div class="history-empty" style="padding:20px 0;">Sin registros 📭</div>`;
+    legend.innerHTML = '';
+    return;
+  }
+
+  const colors = ['#7c5cfc', '#34d399', '#f59e0b', '#ec4899', '#3b82f6', '#a855f7', '#6366f1', '#10b981'];
+
+  const eventCounts = events.map((ev, i) => {
+    const cnt = logs.filter(l => l.eventId === ev.id).length;
+    return { ...ev, count: cnt, color: colors[i % colors.length] };
+  }).filter(ev => ev.count > 0);
+
+  const total = eventCounts.reduce((acc, ev) => acc + ev.count, 0);
+
+  if (total === 0) {
+    container.innerHTML = `<div class="history-empty" style="padding:20px 0;">Sin registros 📭</div>`;
+    legend.innerHTML = '';
+    return;
+  }
+
+  // SVG Donut
+  const size = 140;
+  const strokeWidth = 20;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  let cumulativeOffset = 0;
+  let circlesSvg = '';
+
+  eventCounts.forEach(ev => {
+    const pct = ev.count / total;
+    const strokeDasharray = `${pct * circumference} ${circumference}`;
+    const strokeDashoffset = -cumulativeOffset;
+    cumulativeOffset += pct * circumference;
+
+    circlesSvg += `
+      <circle
+        cx="${size/2}" cy="${size/2}" r="${radius}"
+        fill="transparent"
+        stroke="${ev.color}"
+        stroke-width="${strokeWidth}"
+        stroke-dasharray="${strokeDasharray}"
+        stroke-dashoffset="${strokeDashoffset}"
+        style="transition: stroke-dasharray 0.6s var(--ease);"
+      />
+    `;
+  });
+
+  container.innerHTML = `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform: rotate(-90deg);">
+      <circle cx="${size/2}" cy="${size/2}" r="${radius}" fill="transparent" stroke="var(--bg-elevated)" stroke-width="${strokeWidth}" />
+      ${circlesSvg}
+    </svg>
+    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+      <span style="font-size:1.1rem; font-weight:800; color:var(--text-primary); line-height:1;">${total}</span>
+      <span style="font-size:0.65rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Registros</span>
+    </div>
+  `;
+
+  legend.innerHTML = eventCounts.map(ev => {
+    const pct = Math.round((ev.count / total) * 100);
+    return `
+      <div class="stats-legend-item">
+        <div class="stats-legend-left">
+          <div class="stats-legend-dot" style="background:${ev.color};"></div>
+          <span class="stats-legend-name">${ev.emoji || '✨'} ${escHtml(ev.name)}</span>
+        </div>
+        <span class="stats-legend-pct">${pct}% (${ev.count})</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderWeekdayChart() {
+  const container = document.getElementById('stats-weekday-chart');
+  if (!container) return;
+
+  const logs = getLogs();
+  const weekdays = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
+  const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
+
+  logs.forEach(l => {
+    const [y, m, d] = l.date.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dayIdx = (dateObj.getDay() + 6) % 7; // Mon=0 … Sun=6
+    weekdayCounts[dayIdx]++;
+  });
+
+  const maxVal = Math.max(...weekdayCounts, 1);
+
+  container.innerHTML = weekdays.map((dayLabel, i) => {
+    const cnt = weekdayCounts[i];
+    const pct = Math.round((cnt / maxVal) * 100);
+    return `
+      <div class="stats-bar-col">
+        <span class="stats-bar-val">${cnt > 0 ? cnt : ''}</span>
+        <div class="stats-bar-track">
+          <div class="stats-bar-fill" style="height: ${pct}%;"></div>
+        </div>
+        <span class="stats-bar-lbl">${dayLabel}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderBreakdownList() {
+  const listEl = document.getElementById('stats-breakdown-list');
+  if (!listEl) return;
 
   const events = getEvents();
   const logs   = getLogs();
   const today  = getTodayStr();
 
-  // Hide section if no events
   if (events.length === 0) {
-    if (section) section.hidden = true;
+    listEl.innerHTML = `<div class="history-empty">Sin eventos aún 📭</div>`;
     return;
   }
-  if (section) section.hidden = false;
 
-  list.innerHTML = '';
+  // 30-day window
+  const days30 = [];
+  let dCursor = today;
+  for (let i = 0; i < 30; i++) {
+    days30.push(dCursor);
+    dCursor = prevDay(dCursor);
+  }
+  const days30Set = new Set(days30);
 
-  events.forEach(ev => {
-    const evLogs = logs
-      .filter(l => l.eventId === ev.id)
-      .sort((a, b) => b.date.localeCompare(a.date)); // most recent first
+  listEl.innerHTML = events.map(ev => {
+    const evLogs = logs.filter(l => l.eventId === ev.id);
+    const last30Logs = evLogs.filter(l => days30Set.has(l.date)).length;
+    const pct30 = Math.round((last30Logs / 30) * 100);
 
-    const lastDate = evLogs.length > 0 ? evLogs[0].date : null;
-
-    // Calculate days since last log
-    let daysSince = null;
-    let cardClass = '';
-    let daysDisplay = '—';
-    let daysLabel   = 'sin registros';
-    let subText     = 'Nunca registrado';
-
-    if (lastDate) {
-      const [y, m, d] = lastDate.split('-').map(Number);
-      const last = new Date(y, m - 1, d);
-      const [ty, tm, td] = today.split('-').map(Number);
-      const todayDate = new Date(ty, tm - 1, td);
-      daysSince = Math.round((todayDate - last) / 86400000);
-
-      if (daysSince === 0) {
-        daysDisplay = '✓';
-        daysLabel   = 'hoy';
-        cardClass   = 'recent';
-        subText     = 'Registrado hoy';
-      } else if (daysSince === 1) {
-        daysDisplay = '1';
-        daysLabel   = 'día';
-        cardClass   = 'recent';
-        subText     = 'Último registro: ayer';
-      } else {
-        daysDisplay = String(daysSince);
-        daysLabel   = daysSince === 1 ? 'día' : 'días';
-        cardClass   = daysSince >= 7 ? 'overdue' : '';
-        const fmt = last.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
-        subText = `Último registro: ${fmt}`;
-      }
-    } else {
-      cardClass = 'never';
-    }
-
-    const card = document.createElement('div');
-    card.className = `last-seen-card ${cardClass}`.trim();
-    card.innerHTML = `
-      <div class="last-seen-emoji">${ev.emoji || '✨'}</div>
-      <div class="last-seen-info">
-        <div class="last-seen-name">${escHtml(ev.name)}</div>
-        <div class="last-seen-sub">${subText}</div>
-      </div>
-      <div class="last-seen-days">
-        <span class="last-seen-days-num">${daysDisplay}</span>
-        <span class="last-seen-days-label">${daysLabel}</span>
+    return `
+      <div class="stats-breakdown-item">
+        <div class="stats-breakdown-emoji">${ev.emoji || '✨'}</div>
+        <div class="stats-breakdown-info">
+          <div class="stats-breakdown-name">${escHtml(ev.name)}</div>
+          <div class="stats-breakdown-progress-track">
+            <div class="stats-breakdown-progress-fill" style="width: ${pct30}%;"></div>
+          </div>
+        </div>
+        <div class="stats-breakdown-stats">
+          <span class="stats-breakdown-count">${evLogs.length} reg.</span>
+          <span class="stats-breakdown-pct">${pct30}% (30d)</span>
+        </div>
       </div>
     `;
-    list.appendChild(card);
-  });
+  }).join('');
 }
 
-renderLastSeen();
+document.getElementById('stats-timeframe-select')?.addEventListener('change', () => {
+  renderEvolutionChart();
+});
