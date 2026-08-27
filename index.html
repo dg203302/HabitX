@@ -298,26 +298,35 @@
                 </div>
 
                 <!-- Gráfico 1: Evolución temporal -->
-                <div class="stats-chart-card">
-                    <div class="stats-chart-header">
+                <div class="stats-chart-card collapsible-card" id="card-evolution">
+                    <div class="stats-chart-header" id="header-evolution" role="button" tabindex="0" aria-expanded="true" aria-controls="stats-evolution-body">
                         <div class="stats-chart-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
                                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                             </svg>
                             <span>Evolución en el tiempo</span>
                         </div>
-                        <select id="stats-timeframe-select" class="stats-select" aria-label="Seleccionar período">
-                            <option value="7">Últimos 7 días</option>
-                            <option value="14" selected>Últimos 14 días</option>
-                            <option value="30">Últimos 30 días</option>
-                        </select>
+                        <div class="stats-chart-actions">
+                            <select id="stats-timeframe-select" class="stats-select" aria-label="Seleccionar período">
+                                <option value="7">Últimos 7 días</option>
+                                <option value="14" selected>Últimos 14 días</option>
+                                <option value="30">Últimos 30 días</option>
+                            </select>
+                            <button class="stats-card-toggle-btn" type="button" aria-label="Colapsar o expandir">
+                                <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="stats-chart-body" id="stats-evolution-chart-container"></div>
+                    <div class="stats-chart-body" id="stats-evolution-body">
+                        <div id="stats-evolution-chart-container"></div>
+                    </div>
                 </div>
 
                 <!-- Gráfico 2: Distribución por Porcentaje de Hábitos -->
-                <div class="stats-chart-card">
-                    <div class="stats-chart-header">
+                <div class="stats-chart-card collapsible-card" id="card-donut">
+                    <div class="stats-chart-header" id="header-donut" role="button" tabindex="0" aria-expanded="true" aria-controls="stats-donut-body">
                         <div class="stats-chart-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
                                 <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
@@ -325,16 +334,28 @@
                             </svg>
                             <span>Distribución por Hábito (%)</span>
                         </div>
+                        <div class="stats-chart-actions">
+                            <select id="stats-donut-month-select" class="stats-select" aria-label="Filtrar por mes">
+                                <option value="all">Todos los meses</option>
+                            </select>
+                            <button class="stats-card-toggle-btn" type="button" aria-label="Colapsar o expandir">
+                                <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="stats-donut-wrap">
-                        <div class="stats-donut-chart" id="stats-donut-container"></div>
-                        <div class="stats-donut-legend" id="stats-donut-legend"></div>
+                    <div class="stats-chart-body" id="stats-donut-body">
+                        <div class="stats-donut-wrap">
+                            <div class="stats-donut-chart" id="stats-donut-container"></div>
+                            <div class="stats-donut-legend" id="stats-donut-legend"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Gráfico 3: Hábitos por día de la semana -->
-                <div class="stats-chart-card">
-                    <div class="stats-chart-header">
+                <div class="stats-chart-card collapsible-card" id="card-weekday">
+                    <div class="stats-chart-header" id="header-weekday" role="button" tabindex="0" aria-expanded="true" aria-controls="stats-weekday-body">
                         <div class="stats-chart-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -344,13 +365,22 @@
                             </svg>
                             <span>Constancia por día de la semana</span>
                         </div>
+                        <div class="stats-chart-actions">
+                            <button class="stats-card-toggle-btn" type="button" aria-label="Colapsar o expandir">
+                                <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="stats-bar-chart" id="stats-weekday-chart"></div>
+                    <div class="stats-chart-body" id="stats-weekday-body">
+                        <div class="stats-bar-chart" id="stats-weekday-chart"></div>
+                    </div>
                 </div>
 
                 <!-- Desglose por Evento -->
-                <div class="stats-chart-card">
-                    <div class="stats-chart-header">
+                <div class="stats-chart-card collapsible-card" id="card-breakdown">
+                    <div class="stats-chart-header" id="header-breakdown" role="button" tabindex="0" aria-expanded="true" aria-controls="stats-breakdown-body">
                         <div class="stats-chart-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
                                 <line x1="8" y1="6" x2="21" y2="6"/>
@@ -362,8 +392,20 @@
                             </svg>
                             <span>Desglose por Evento</span>
                         </div>
+                        <div class="stats-chart-actions">
+                            <select id="stats-breakdown-month-select" class="stats-select" aria-label="Filtrar por mes">
+                                <option value="all">Todos los meses</option>
+                            </select>
+                            <button class="stats-card-toggle-btn" type="button" aria-label="Colapsar o expandir">
+                                <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="stats-breakdown-list" id="stats-breakdown-list"></div>
+                    <div class="stats-chart-body" id="stats-breakdown-body">
+                        <div class="stats-breakdown-list" id="stats-breakdown-list"></div>
+                    </div>
                 </div>
             </div>
         </section>

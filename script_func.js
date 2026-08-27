@@ -1134,6 +1134,75 @@ renderCalendar();
 // ─────────────────────────────────────────
 //  STATS SECTION – CHARTS & ANALYTICS
 // ─────────────────────────────────────────
+function getStatsAvailableMonths(logs) {
+  const current = new Date();
+  const currentKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+  const keysSet = new Set([currentKey]);
+
+  (logs || []).forEach(l => {
+    if (l.date && l.date.length >= 7) {
+      keysSet.add(l.date.substring(0, 7));
+    }
+  });
+
+  return Array.from(keysSet).sort().reverse();
+}
+
+function formatStatsMonthLabel(key, currentKey) {
+  const [yStr, mStr] = key.split('-');
+  const y = parseInt(yStr, 10);
+  const m = parseInt(mStr, 10);
+  const dateObj = new Date(y, m - 1, 1);
+  const formatted = dateObj.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const capitalized = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  return key === currentKey ? `${capitalized} (Este mes)` : capitalized;
+}
+
+function updateStatsMonthSelect(selectId, availableKeys, currentKey) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  const currentVal = select.value;
+  let optionsHtml = '';
+  availableKeys.forEach(k => {
+    optionsHtml += `<option value="${k}">${formatStatsMonthLabel(k, currentKey)}</option>`;
+  });
+  optionsHtml += `<option value="all">Todos los meses</option>`;
+  select.innerHTML = optionsHtml;
+
+  if (currentVal && (availableKeys.includes(currentVal) || currentVal === 'all')) {
+    select.value = currentVal;
+  } else {
+    select.value = currentKey;
+  }
+}
+
+function initStatsCollapsibles() {
+  document.querySelectorAll('.collapsible-card').forEach(card => {
+    const header = card.querySelector('.stats-chart-header');
+    const body = card.querySelector('.stats-chart-body');
+    if (!header || !body) return;
+
+    if (header.dataset.collapsibleInit) return;
+    header.dataset.collapsibleInit = 'true';
+
+    header.addEventListener('click', (e) => {
+      if (e.target.closest('select') || e.target.closest('option')) return;
+      const isExpanded = header.getAttribute('aria-expanded') === 'true';
+      header.setAttribute('aria-expanded', !isExpanded);
+      body.hidden = isExpanded;
+      if (!isExpanded && card.id === 'card-evolution') {
+        renderEvolutionChart();
+      }
+    });
+
+    const selects = header.querySelectorAll('select');
+    selects.forEach(sel => {
+      sel.addEventListener('click', e => e.stopPropagation());
+    });
+  });
+}
+
 function renderStats() {
   const events = getEvents();
   const logs   = getLogs();
@@ -1188,6 +1257,16 @@ function renderStats() {
   if (bestHabitEl) {
     bestHabitEl.textContent = bestEv ? `${bestEv.emoji || '✨'} ${bestEv.name}` : '—';
   }
+
+  // Populate Month Filter Selects
+  const current = new Date();
+  const currentKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+  const availableKeys = getStatsAvailableMonths(logs);
+  updateStatsMonthSelect('stats-donut-month-select', availableKeys, currentKey);
+  updateStatsMonthSelect('stats-breakdown-month-select', availableKeys, currentKey);
+
+  // Initialize Collapsible Containers
+  initStatsCollapsibles();
 
   // Render Calendar
   renderCalendar();
@@ -1301,9 +1380,15 @@ function renderDonutChart() {
 
   const events = getEvents();
   const logs   = getLogs();
+  const select = document.getElementById('stats-donut-month-select');
+  const selectedMonth = select ? select.value : 'all';
 
-  if (events.length === 0 || logs.length === 0) {
-    container.innerHTML = `<div class="history-empty" style="padding:20px 0;">Sin registros 📭</div>`;
+  const filteredLogs = (selectedMonth && selectedMonth !== 'all')
+    ? logs.filter(l => l.date && l.date.startsWith(selectedMonth))
+    : logs;
+
+  if (events.length === 0 || filteredLogs.length === 0) {
+    container.innerHTML = `<div class="history-empty" style="padding:20px 0;">Sin registros en este período 📭</div>`;
     legend.innerHTML = '';
     return;
   }
@@ -1311,14 +1396,14 @@ function renderDonutChart() {
   const colors = ['#7c5cfc', '#34d399', '#f59e0b', '#ec4899', '#3b82f6', '#a855f7', '#6366f1', '#10b981'];
 
   const eventCounts = events.map((ev, i) => {
-    const cnt = logs.filter(l => l.eventId === ev.id).length;
+    const cnt = filteredLogs.filter(l => l.eventId === ev.id).length;
     return { ...ev, count: cnt, color: colors[i % colors.length] };
   }).filter(ev => ev.count > 0);
 
   const total = eventCounts.reduce((acc, ev) => acc + ev.count, 0);
 
   if (total === 0) {
-    container.innerHTML = `<div class="history-empty" style="padding:20px 0;">Sin registros 📭</div>`;
+    container.innerHTML = `<div class="history-empty" style="padding:20px 0;">Sin registros en este período 📭</div>`;
     legend.innerHTML = '';
     return;
   }
@@ -1414,45 +1499,76 @@ function renderBreakdownList() {
 
   const events = getEvents();
   const logs   = getLogs();
-  const today  = getTodayStr();
+  const select = document.getElementById('stats-breakdown-month-select');
+  const selectedMonth = select ? select.value : 'all';
 
   if (events.length === 0) {
     listEl.innerHTML = `<div class="history-empty">Sin eventos aún 📭</div>`;
     return;
   }
 
-  // 30-day window
-  const days30 = [];
-  let dCursor = today;
-  for (let i = 0; i < 30; i++) {
-    days30.push(dCursor);
-    dCursor = prevDay(dCursor);
-  }
-  const days30Set = new Set(days30);
+  if (selectedMonth && selectedMonth !== 'all') {
+    const [yStr, mStr] = selectedMonth.split('-');
+    const y = parseInt(yStr, 10);
+    const m = parseInt(mStr, 10);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const monthLogs = logs.filter(l => l.date && l.date.startsWith(selectedMonth));
 
-  listEl.innerHTML = events.map(ev => {
-    const evLogs = logs.filter(l => l.eventId === ev.id);
-    const last30Logs = evLogs.filter(l => days30Set.has(l.date)).length;
-    const pct30 = Math.round((last30Logs / 30) * 100);
+    listEl.innerHTML = events.map(ev => {
+      const evMonthLogs = monthLogs.filter(l => l.eventId === ev.id).length;
+      const pct = Math.min(100, Math.round((evMonthLogs / daysInMonth) * 100));
 
-    return `
-      <div class="stats-breakdown-item">
-        <div class="stats-breakdown-emoji">${ev.emoji || '✨'}</div>
-        <div class="stats-breakdown-info">
-          <div class="stats-breakdown-name">${escHtml(ev.name)}</div>
-          <div class="stats-breakdown-progress-track">
-            <div class="stats-breakdown-progress-fill" style="width: ${pct30}%;"></div>
+      return `
+        <div class="stats-breakdown-item">
+          <div class="stats-breakdown-emoji">${ev.emoji || '✨'}</div>
+          <div class="stats-breakdown-info">
+            <div class="stats-breakdown-name">${escHtml(ev.name)}</div>
+            <div class="stats-breakdown-progress-track">
+              <div class="stats-breakdown-progress-fill" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+          <div class="stats-breakdown-stats">
+            <span class="stats-breakdown-count">${evMonthLogs} reg.</span>
+            <span class="stats-breakdown-pct">${pct}% (${daysInMonth}d)</span>
           </div>
         </div>
-        <div class="stats-breakdown-stats">
-          <span class="stats-breakdown-count">${evLogs.length} reg.</span>
-          <span class="stats-breakdown-pct">${pct30}% (30d)</span>
+      `;
+    }).join('');
+  } else {
+    // All time
+    const totalLogs = logs.length;
+    listEl.innerHTML = events.map(ev => {
+      const evLogs = logs.filter(l => l.eventId === ev.id);
+      const cnt = evLogs.length;
+      const pct = totalLogs > 0 ? Math.round((cnt / totalLogs) * 100) : 0;
+
+      return `
+        <div class="stats-breakdown-item">
+          <div class="stats-breakdown-emoji">${ev.emoji || '✨'}</div>
+          <div class="stats-breakdown-info">
+            <div class="stats-breakdown-name">${escHtml(ev.name)}</div>
+            <div class="stats-breakdown-progress-track">
+              <div class="stats-breakdown-progress-fill" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+          <div class="stats-breakdown-stats">
+            <span class="stats-breakdown-count">${cnt} reg.</span>
+            <span class="stats-breakdown-pct">${pct}% (total)</span>
+          </div>
         </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  }
 }
 
 document.getElementById('stats-timeframe-select')?.addEventListener('change', () => {
   renderEvolutionChart();
+});
+
+document.getElementById('stats-donut-month-select')?.addEventListener('change', () => {
+  renderDonutChart();
+});
+
+document.getElementById('stats-breakdown-month-select')?.addEventListener('change', () => {
+  renderBreakdownList();
 });
