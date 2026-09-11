@@ -99,6 +99,7 @@ function navigateTo(sectionId) {
   // Update header title & subtitle
   const headerTitles = {
     Home:   { title: 'Mis Eventos',    subtitle: 'Registrá tu progreso de hoy' },
+    Habits: { title: 'Mis Hábitos',    subtitle: 'Gestioná y editá tus rutinas' },
     Add:    { title: 'Nuevo Evento',   subtitle: 'Definí qué querés trackear' },
     Stats:  { title: 'Estadísticas',   subtitle: 'Análisis de tu rendimiento y constancia' },
     Config: { title: 'Configuración', subtitle: 'Personalizá tu experiencia' },
@@ -112,7 +113,9 @@ function navigateTo(sectionId) {
   }
 
   // Refresh home on every visit
-  if (sectionId === 'Home') renderEvents();
+  if (sectionId === 'Home') renderDashboard();
+  // Refresh habits on every visit
+  if (sectionId === 'Habits') renderHabits();
   // Refresh add-cal on every visit to Add
   if (sectionId === 'Add') { if (typeof renderAddCal === 'function') renderAddCal(); }
   // Refresh stats on every visit to Stats
@@ -141,26 +144,30 @@ function updateHeaderDate() {
 updateHeaderDate();
 
 // ─────────────────────────────────────────
-//  RENDER HOME – EVENT LIST
+//  RENDER HOME – DASHBOARD QUICK-LOG GRID
 // ─────────────────────────────────────────
-function renderEvents() {
-  const list   = document.getElementById('events-list');
+function renderDashboard() {
+  const grid   = document.getElementById('dashboard-grid') || document.getElementById('events-list');
+  if (!grid) return;
   const events = getEvents();
   const logs   = getLogs();
   const today  = getTodayStr();
 
-  list.innerHTML = '';
+  grid.innerHTML = '';
 
   if (events.length === 0) {
-    list.innerHTML = `
-      <div class="empty-state">
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1;">
         <div class="empty-icon">🌱</div>
-        <div class="empty-title">No tenés eventos aún</div>
-        <div class="empty-sub">Creá tu primer evento para empezar a trackear tus hábitos</div>
-        <button class="empty-cta" id="empty-cta-btn">+ Crear evento</button>
+        <div class="empty-title">No tenés hábitos aún</div>
+        <div class="empty-sub">Creá tu primer hábito para empezar a registrar tu progreso diario</div>
+        <button class="empty-cta" id="empty-dash-cta-btn">+ Crear hábito</button>
       </div>`;
-    document.getElementById('empty-cta-btn')
-      ?.addEventListener('click', () => navigateTo('Add'));
+    document.getElementById('empty-dash-cta-btn')
+      ?.addEventListener('click', () => {
+        navigateTo('Habits');
+        openCreateHabitModal();
+      });
     updateProgress(0, 0);
     return;
   }
@@ -171,15 +178,13 @@ function renderEvents() {
     // Calculate last seen counter for this specific event
     const evLogs = logs
       .filter(l => l.eventId === ev.id)
-      .sort((a, b) => b.date.localeCompare(a.date)); // most recent first
+      .sort((a, b) => b.date.localeCompare(a.date));
 
     const lastDate = evLogs.length > 0 ? evLogs[0].date : null;
 
     let daysSince = null;
     let cardClass = '';
-    let daysDisplay = '—';
-    let daysLabel   = 'sin registros';
-    let subText     = 'Nunca registrado';
+    let counterText = 'Sin registros';
 
     if (lastDate) {
       const [y, m, d] = lastDate.split('-').map(Number);
@@ -189,104 +194,178 @@ function renderEvents() {
       daysSince = Math.round((todayDate - last) / 86400000);
 
       if (daysSince === 0) {
-        daysDisplay = '✓';
-        daysLabel   = 'hoy';
+        counterText = '✓ Hoy';
         cardClass   = 'recent';
-        subText     = 'Último registro: hoy';
       } else if (daysSince === 1) {
-        daysDisplay = '1';
-        daysLabel   = 'día';
+        counterText = 'Ayer';
         cardClass   = 'recent';
-        subText     = 'Último registro: ayer';
       } else {
-        daysDisplay = String(daysSince);
-        daysLabel   = daysSince === 1 ? 'día' : 'días';
+        counterText = `Hace ${daysSince} d`;
         cardClass   = daysSince >= 7 ? 'overdue' : '';
-        const fmt = last.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
-        subText = `Último registro: ${fmt}`;
       }
     } else {
       cardClass = 'never';
     }
 
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = `habit-quick-card${logged ? ' registered' : ''}`;
+    card.dataset.id = ev.id;
+    card.setAttribute('aria-label', `${ev.name} - ${logged ? 'Registrado hoy. Tocá para desmarcar' : 'Tocá para registrar hoy'}`);
+
+    card.innerHTML = `
+      <div class="quick-card-emoji">${ev.emoji || '✨'}</div>
+      <div class="quick-card-name">${escHtml(ev.name)}</div>
+      <div class="quick-card-counter ${cardClass}">
+        <span>${counterText}</span>
+      </div>`;
+
+    card.addEventListener('click', () => {
+      toggleLog(ev.id);
+      renderEvents();
+      if (typeof renderStats === 'function') renderStats();
+    });
+
+    grid.appendChild(card);
+  });
+
+  // Progress bar
+  const total = events.length;
+  const done  = events.filter(ev => isLoggedToday(ev.id)).length;
+  updateProgress(done, total);
+}
+
+// ─────────────────────────────────────────
+//  RENDER HABITS – DETAILED LIST
+// ─────────────────────────────────────────
+function renderHabits() {
+  const list  = document.getElementById('habits-list');
+  const badge = document.getElementById('habits-total-badge');
+  if (!list) return;
+
+  const events = getEvents();
+  const logs   = getLogs();
+  const today  = getTodayStr();
+
+  if (badge) {
+    badge.textContent = `${events.length} hábito${events.length === 1 ? '' : 's'}`;
+  }
+
+  list.innerHTML = '';
+
+  if (events.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🎯</div>
+        <div class="empty-title">No tenés hábitos creados</div>
+        <div class="empty-sub">Comenzá creando un hábito para construir tu rutina diaria</div>
+        <button class="empty-cta" id="empty-habits-cta-btn">+ Crear hábito</button>
+      </div>`;
+    document.getElementById('empty-habits-cta-btn')
+      ?.addEventListener('click', openCreateHabitModal);
+    return;
+  }
+
+  events.forEach(ev => {
+    const evLogs = logs
+      .filter(l => l.eventId === ev.id)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    let lastRecordLabel = 'Nunca';
+    if (evLogs.length > 0) {
+      const lastDate = evLogs[0].date;
+      if (lastDate === today) {
+        lastRecordLabel = 'Hoy';
+      } else if (lastDate === getYesterdayStr()) {
+        lastRecordLabel = 'Ayer';
+      } else {
+        const [y, m, d] = lastDate.split('-').map(Number);
+        const last = new Date(y, m - 1, d);
+        lastRecordLabel = last.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+      }
+    }
+
     const card = document.createElement('div');
-    card.className = `event-card${logged ? ' registered' : ''}`;
+    card.className = 'habit-detail-card';
     card.dataset.id = ev.id;
 
     card.innerHTML = `
-      <div class="event-card-main">
-        <div class="event-emoji-wrap">${ev.emoji || '✨'}</div>
-        <div class="event-info">
-          <span class="event-name">${escHtml(ev.name)}</span>
-          <span class="event-desc">${escHtml(ev.desc || '')}</span>
-          <div class="event-status">
-            <span class="status-dot"></span>
-            <span class="status-text">${logged ? 'Registrado hoy ✓' : 'Sin registrar hoy'}</span>
+      <div class="habit-detail-top">
+        <div class="habit-detail-emoji">${ev.emoji || '✨'}</div>
+        <div class="habit-detail-info">
+          <span class="habit-detail-name">${escHtml(ev.name)}</span>
+          <span class="habit-detail-desc">${escHtml(ev.desc || 'Sin descripción')}</span>
+          <div class="habit-detail-stats">
+            <span class="habit-stat-badge">📊 Total: <strong>${evLogs.length}</strong></span>
+            <span class="habit-stat-badge">📅 Último: <strong>${lastRecordLabel}</strong></span>
           </div>
         </div>
-        <div class="event-actions">
-          <button
-            class="btn-register${logged ? ' registered-btn' : ''}"
-            aria-label="${logged ? 'Quitar registro de hoy' : 'Registrar hoy'}"
-            data-id="${ev.id}"
-            title="${logged ? 'Quitar registro' : 'Registrar hoy'}"
-          >
-            ${logged
-              ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                   <polyline points="20 6 9 17 4 12"/>
-                 </svg>`
-              : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                   <line x1="12" y1="5" x2="12" y2="19"/>
-                   <line x1="5" y1="12" x2="19" y2="12"/>
-                 </svg>`
-            }
-          </button>
-          <button
-            class="btn-cfg"
-            aria-label="Detalles de ${escHtml(ev.name)}"
-            data-id="${ev.id}"
-            title="Ver detalles"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="2.5"/>
-              <circle cx="19" cy="12" r="2.5"/>
-              <circle cx="5" cy="12" r="2.5"/>
-            </svg>
-          </button>
-        </div>
       </div>
-      <div class="event-card-counter ${cardClass}">
-        <div class="event-counter-info">
-          <svg class="event-counter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
+      <div class="habit-detail-actions">
+        <button class="btn-habit-act act-edit" data-id="${ev.id}" title="Editar hábito">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
-          <span class="event-counter-sub">${subText}</span>
-        </div>
-        <div class="event-counter-pill">
-          <span class="event-counter-num">${daysDisplay}</span>
-          <span class="event-counter-label">${daysLabel}</span>
-        </div>
+          Editar
+        </button>
+        <button class="btn-habit-act act-hist" data-id="${ev.id}" title="Ver historial">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 .49-4.5" />
+          </svg>
+          Historial
+        </button>
+        <button class="btn-habit-act act-delete" data-id="${ev.id}" title="Eliminar hábito">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4h6v2" />
+          </svg>
+          Eliminar
+        </button>
       </div>`;
 
-    // Register button
-    card.querySelector('.btn-register').addEventListener('click', () => {
-      toggleLog(ev.id);
-      renderEvents(); // full re-render keeps it simple & consistent
+    // Action handlers
+    card.querySelector('.act-edit').addEventListener('click', () => {
+      openConfigModal(ev.id);
     });
 
-    // Details button
-    card.querySelector('.btn-cfg').addEventListener('click', () => {
-      openDetailsModal(ev.id);
+    card.querySelector('.act-hist').addEventListener('click', () => {
+      openHistoryModal(ev.id);
+    });
+
+    card.querySelector('.act-delete').addEventListener('click', async () => {
+      const ok = await showConfirm({
+        icon:        '🗑️',
+        title:       'Eliminar hábito',
+        message:     `¿Estás seguro de que querés eliminar "${ev.name}"? Se borrarán todos sus registros.`,
+        confirmText: 'Eliminar',
+      });
+      if (!ok) return;
+      const updatedEvents = getEvents().filter(e => e.id !== ev.id);
+      saveEvents(updatedEvents);
+      const updatedLogs = getLogs().filter(l => l.eventId !== ev.id);
+      saveLogs(updatedLogs);
+      renderDashboard();
+      renderHabits();
+      if (typeof renderStats === 'function') renderStats();
     });
 
     list.appendChild(card);
   });
+}
 
-  // Progress bar
-  const total  = events.length;
-  const done   = events.filter(ev => isLoggedToday(ev.id)).length;
-  updateProgress(done, total);
+function getYesterdayStr() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function renderEvents() {
+  renderDashboard();
+  renderHabits();
 }
 
 function updateProgress(done, total) {
@@ -817,8 +896,8 @@ document.getElementById('add-form')?.addEventListener('submit', e => {
   // Reset form
   document.getElementById('add-form').reset();
   addSelectedEmoji = '✨';
-  addEmojiDisp.textContent = '✨';
-  addPickerWrap.hidden = true;
+  if (addEmojiDisp) addEmojiDisp.textContent = '✨';
+  if (addPickerWrap) addPickerWrap.hidden = true;
 
   // Reset add calendar
   addCalDates.clear();
@@ -826,7 +905,44 @@ document.getElementById('add-form')?.addEventListener('submit', e => {
   addCalMonth = new Date().getMonth();
   renderAddCal();
 
-  navigateTo('Home');
+  closeCreateHabitModal();
+  renderDashboard();
+  renderHabits();
+  if (typeof renderStats === 'function') renderStats();
+});
+
+// ─────────────────────────────────────────
+//  CREATE HABIT MODAL
+// ─────────────────────────────────────────
+const createHabitModal = document.getElementById('create-habit-modal');
+const createHabitBtn   = document.getElementById('habits-create-btn');
+const createHabitClose = document.getElementById('create-habit-close');
+
+function openCreateHabitModal() {
+  if (!createHabitModal) return;
+  document.getElementById('add-form')?.reset();
+  addSelectedEmoji = '✨';
+  if (addEmojiDisp) addEmojiDisp.textContent = '✨';
+  if (addPickerWrap) addPickerWrap.hidden = true;
+  addCalDates.clear();
+  addCalYear  = new Date().getFullYear();
+  addCalMonth = new Date().getMonth();
+  renderAddCal();
+
+  createHabitModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCreateHabitModal() {
+  if (!createHabitModal) return;
+  createHabitModal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+createHabitBtn?.addEventListener('click', openCreateHabitModal);
+createHabitClose?.addEventListener('click', closeCreateHabitModal);
+createHabitModal?.addEventListener('click', e => {
+  if (e.target === createHabitModal) closeCreateHabitModal();
 });
 
 

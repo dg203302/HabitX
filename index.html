@@ -71,8 +71,8 @@
                     </div>
                 </div>
 
-                <!-- Lista de eventos dinámica -->
-                <div class="events-list" id="events-list">
+                <!-- Cuadrícula de registro rápido -->
+                <div class="dashboard-grid" id="dashboard-grid">
                     <!-- Renderizado por JS -->
                 </div>
 
@@ -84,106 +84,30 @@
         </section>
 
         <!-- ══════════════════════════════
-             SECCIÓN ADD
+             SECCIÓN HABITOS
         ══════════════════════════════ -->
-        <section id="Add" class="section" aria-label="Nuevo evento">
+        <section id="Habits" class="section" aria-label="Hábitos">
             <div class="section-inner">
-                <!--<div class="section-hero">
-                    <h2 class="section-title">Nuevo Evento</h2>
-                    <p class="section-subtitle">Definí qué querés trackear</p>
-                </div>-->
-
-                <form class="add-form" id="add-form" novalidate>
-
-                    <!-- Emoji selector -->
-                    <div class="form-group">
-                        <label class="form-label">Emoji</label>
-                        <div class="emoji-field-row">
-                            <button type="button" class="emoji-trigger" id="add-emoji-trigger"
-                                aria-label="Seleccionar emoji">
-                                <span id="add-emoji-display">✨</span>
-                            </button>
-                            <span class="emoji-field-hint">Tocá para elegir un emoji</span>
-                        </div>
-                        <div class="emoji-picker-wrapper" id="add-emoji-picker-wrapper" hidden>
-                            <emoji-picker id="add-emoji-picker" class="dark"></emoji-picker>
-                        </div>
+                <div class="habits-header-bar">
+                    <div class="habits-header-info">
+                        <span class="habits-header-title">Mis Rutinas</span>
+                        <span class="habits-total-badge" id="habits-total-badge">0 hábitos</span>
                     </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="add-name-input">Nombre</label>
-                        <input type="text" id="add-name-input" class="form-input" placeholder="Ej: Meditación diaria"
-                            maxlength="50" autocomplete="off">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="add-desc-input">Descripción</label>
-                        <textarea id="add-desc-input" class="form-input form-textarea"
-                            placeholder="Ej: Meditar al menos 10 minutos cada mañana" maxlength="120"
-                            rows="3"></textarea>
-                    </div>
-
-                    <button type="submit" class="btn-primary" id="add-event-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20"
-                            height="20">
+                    <button class="btn-create-habit" id="habits-create-btn" type="button" aria-label="Crear nuevo hábito">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
                         </svg>
-                        Crear Evento
+                        <span>Crear Hábito</span>
                     </button>
-                </form>
-
-                <!-- Calendario de registros previos para el nuevo evento -->
-                <div class="cal-section add-cal-section" id="add-cal-section">
-                    <button class="cal-toggle-btn" id="add-cal-toggle-btn" type="button" aria-expanded="false"
-                        aria-controls="add-cal-body">
-                        <div class="cal-toggle-title">
-                            <svg class="cal-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" width="18" height="18">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                            </svg>
-                            <span>Registros previos</span>
-                            <span class="add-cal-badge" id="add-cal-badge">0</span>
-                        </div>
-                        <div class="cal-toggle-right">
-                            <span class="cal-month-badge" id="add-cal-month-badge"></span>
-                            <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" width="18" height="18">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </div>
-                    </button>
-
-                    <div class="cal-body" id="add-cal-body" hidden>
-                        <div class="add-cal-sub-header">
-                            <span class="add-cal-hint">Tocá un día para marcarlo como registro previo</span>
-                        </div>
-                        <div class="cal-header">
-                            <button class="cal-nav-btn" id="add-cal-prev" type="button" aria-label="Mes anterior">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
-                                    height="18">
-                                    <polyline points="15 18 9 12 15 6" />
-                                </svg>
-                            </button>
-                            <span class="cal-month-label" id="add-cal-month-label"></span>
-                            <button class="cal-nav-btn" id="add-cal-next" type="button" aria-label="Mes siguiente">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
-                                    height="18">
-                                    <polyline points="9 18 15 12 9 6" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="cal-weekdays">
-                            <span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span>
-                        </div>
-                        <div class="cal-grid" id="add-cal-grid"></div>
-                    </div>
                 </div>
 
-                <!-- Ad Unit – Add (banner 728x90) -->
+                <!-- Lista detallada de hábitos -->
+                <div class="habits-list" id="habits-list">
+                    <!-- Renderizado por JS -->
+                </div>
+
+                <!-- Ad Unit – Add/Habits (banner 728x90) -->
                 <div class="ad-unit-wrap ad-unit-banner">
                     <script>
                         atOptions = {
@@ -461,6 +385,104 @@
     </main>
 
     <!-- ════════════════════════════════════════
+         MODAL – Crear Hábito
+    ════════════════════════════════════════ -->
+    <div class="modal-overlay" id="create-habit-modal" aria-modal="true" role="dialog" aria-label="Crear Hábito" hidden>
+        <div class="modal-sheet" id="create-habit-sheet">
+            <div class="modal-header">
+                <h3 class="modal-title">Crear Nuevo Hábito</h3>
+                <button class="modal-close-btn" id="create-habit-close" aria-label="Cerrar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+
+            <form class="add-form" id="add-form" novalidate>
+                <!-- Emoji selector -->
+                <div class="form-group">
+                    <label class="form-label">Emoji</label>
+                    <div class="emoji-field-row">
+                        <button type="button" class="emoji-trigger" id="add-emoji-trigger" aria-label="Seleccionar emoji">
+                            <span id="add-emoji-display">✨</span>
+                        </button>
+                        <span class="emoji-field-hint">Tocá para elegir un emoji</span>
+                    </div>
+                    <div class="emoji-picker-wrapper" id="add-emoji-picker-wrapper" hidden>
+                        <emoji-picker id="add-emoji-picker" class="dark"></emoji-picker>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="add-name-input">Nombre</label>
+                    <input type="text" id="add-name-input" class="form-input" placeholder="Ej: Meditación diaria" maxlength="50" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="add-desc-input">Descripción</label>
+                    <textarea id="add-desc-input" class="form-input form-textarea" placeholder="Ej: Meditar al menos 10 minutos cada mañana" maxlength="120" rows="3"></textarea>
+                </div>
+
+                <!-- Calendario de registros previos para el nuevo evento -->
+                <div class="cal-section add-cal-section" id="add-cal-section">
+                    <button class="cal-toggle-btn" id="add-cal-toggle-btn" type="button" aria-expanded="false" aria-controls="add-cal-body">
+                        <div class="cal-toggle-title">
+                            <svg class="cal-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <span>Registros previos</span>
+                            <span class="add-cal-badge" id="add-cal-badge">0</span>
+                        </div>
+                        <div class="cal-toggle-right">
+                            <span class="cal-month-badge" id="add-cal-month-badge"></span>
+                            <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </div>
+                    </button>
+
+                    <div class="cal-body" id="add-cal-body" hidden>
+                        <div class="add-cal-sub-header">
+                            <span class="add-cal-hint">Tocá un día para marcarlo como registro previo</span>
+                        </div>
+                        <div class="cal-header">
+                            <button class="cal-nav-btn" id="add-cal-prev" type="button" aria-label="Mes anterior">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                                    <polyline points="15 18 9 12 15 6" />
+                                </svg>
+                            </button>
+                            <span class="cal-month-label" id="add-cal-month-label"></span>
+                            <button class="cal-nav-btn" id="add-cal-next" type="button" aria-label="Mes siguiente">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="cal-weekdays">
+                            <span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span>
+                        </div>
+                        <div class="cal-grid" id="add-cal-grid"></div>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 18px;">
+                    <button type="submit" class="btn-primary" id="add-event-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Crear Hábito
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
          MODAL – Detalles del Evento
     ════════════════════════════════════════ -->
     <div class="modal-overlay" id="event-details-modal" aria-modal="true" role="dialog" aria-label="Detalles del evento"
@@ -629,7 +651,7 @@
         </div>
     </div>
 
-    <!-- BOTTOM NAV -->
+    <!-- BOTTOM NAV (Floating Dock) -->
     <nav class="bottom-nav" role="navigation" aria-label="Navegación principal">
         <button class="nav-btn active" data-section="Home" id="nav-home" aria-label="Inicio" aria-current="page">
             <div class="nav-icon">
@@ -642,14 +664,15 @@
             <span class="nav-label">Inicio</span>
         </button>
 
-        <button class="nav-btn nav-btn-add" data-section="Add" id="nav-add" aria-label="Nuevo evento">
-            <div class="nav-icon-add">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
+        <button class="nav-btn" data-section="Habits" id="nav-habits" aria-label="Hábitos">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                 </svg>
             </div>
-            <span class="nav-label">Nuevo</span>
+            <span class="nav-label">Hábitos</span>
         </button>
 
         <button class="nav-btn" data-section="Stats" id="nav-stats" aria-label="Estadísticas">
