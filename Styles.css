@@ -314,6 +314,36 @@ body::before {
   color: var(--text-muted);
 }
 
+.quick-card-undo {
+  appearance: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease), transform 0.15s var(--ease-spring);
+}
+.quick-card-undo:hover {
+  background: rgba(239, 68, 68, 0.22);
+  color: #f87171;
+}
+.quick-card-undo:active {
+  transform: scale(0.9);
+}
+.quick-card-undo-icon {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
 /* ─────────────────────────────────────
    HABITS SECTION (Detailed view)
 ───────────────────────────────────── */
@@ -1185,6 +1215,25 @@ emoji-picker {
   font-size: 0.76rem; color: var(--text-muted);
 }
 
+.history-item-delete {
+  appearance: none;
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.history-item-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
 .history-empty {
   text-align: center; padding: 32px 20px;
   color: var(--text-muted); font-size: 0.88rem;
@@ -1904,6 +1953,55 @@ emoji-picker {
   color: var(--text-muted);
   padding: 10px 0 4px;
 }
+
+/* ── Heatmap (Stats calendar) ── */
+.cal-day.heat-1 { background: rgba(124, 92, 252, 0.16); }
+.cal-day.heat-2 { background: rgba(124, 92, 252, 0.34); }
+.cal-day.heat-3 { background: rgba(124, 92, 252, 0.58); }
+.cal-day.heat-4 { background: rgba(124, 92, 252, 0.85); }
+.cal-day.heat-1:hover { background: rgba(124, 92, 252, 0.24); }
+.cal-day.heat-2:hover { background: rgba(124, 92, 252, 0.42); }
+.cal-day.heat-3:hover { background: rgba(124, 92, 252, 0.66); }
+.cal-day.heat-4:hover { background: rgba(124, 92, 252, 0.92); }
+.cal-day.heat-3 .cal-day-num,
+.cal-day.heat-4 .cal-day-num {
+  color: #fff;
+}
+.cal-day.heat-4.today .cal-day-num {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: none;
+}
+
+.cal-heat-count {
+  font-size: 0.56rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+.cal-day.heat-3 .cal-heat-count,
+.cal-day.heat-4 .cal-heat-count {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.cal-heat-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 12px 14px;
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+.cal-heat-legend-box {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: transparent;
+}
+.cal-heat-legend-box.heat-1 { background: rgba(124, 92, 252, 0.16); }
+.cal-heat-legend-box.heat-2 { background: rgba(124, 92, 252, 0.34); }
+.cal-heat-legend-box.heat-3 { background: rgba(124, 92, 252, 0.58); }
+.cal-heat-legend-box.heat-4 { background: rgba(124, 92, 252, 0.85); }
 
 /* ── Shared calendar states ── */
 

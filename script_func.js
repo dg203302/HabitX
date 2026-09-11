@@ -32,19 +32,45 @@ function isLoggedToday(eventId) {
   return getLogs().some(l => l.eventId === eventId && l.date === getTodayStr());
 }
 
-function toggleLog(eventId) {
-  const logs  = getLogs();
-  const today = getTodayStr();
-  const idx   = logs.findIndex(l => l.eventId === eventId && l.date === today);
-  if (idx >= 0) {
-    logs.splice(idx, 1);
-    saveLogs(logs);
-    return false; // unregistered
-  } else {
-    logs.push({ eventId, date: today, ts: Date.now() });
-    saveLogs(logs);
-    return true; // registered
-  }
+function countLogsForDay(eventId, dateStr) {
+  return getLogs().filter(l => l.eventId === eventId && l.date === dateStr).length;
+}
+
+// Adds a new log entry for eventId/dateStr. Habits can be logged more than
+// once per day, so this always appends rather than toggling.
+function addLog(eventId, dateStr, ts) {
+  const logs = getLogs();
+  logs.push({ id: genId(), eventId, date: dateStr, ts: ts != null ? ts : Date.now() });
+  saveLogs(logs);
+}
+
+// Removes the most recently created log for eventId/dateStr (undo).
+function removeLastLog(eventId, dateStr) {
+  const logs = getLogs();
+  let lastIdx = -1, lastTs = -Infinity;
+  logs.forEach((l, i) => {
+    if (l.eventId === eventId && l.date === dateStr && l.ts >= lastTs) {
+      lastTs = l.ts;
+      lastIdx = i;
+    }
+  });
+  if (lastIdx < 0) return false;
+  logs.splice(lastIdx, 1);
+  saveLogs(logs);
+  return true;
+}
+
+// Removes one specific log (matched by id, falling back to identity for
+// older logs saved before ids existed).
+function removeLogRef(log) {
+  const logs = getLogs();
+  const idx = log.id
+    ? logs.findIndex(l => l.id === log.id)
+    : logs.findIndex(l => l.eventId === log.eventId && l.date === log.date && l.ts === log.ts);
+  if (idx < 0) return false;
+  logs.splice(idx, 1);
+  saveLogs(logs);
+  return true;
 }
 
 function getEventLogs(eventId) {
@@ -173,7 +199,8 @@ function renderDashboard() {
   }
 
   events.forEach(ev => {
-    const logged = isLoggedToday(ev.id);
+    const todayCount = logs.filter(l => l.eventId === ev.id && l.date === today).length;
+    const logged = todayCount > 0;
 
     // Calculate last seen counter for this specific event
     const evLogs = logs
@@ -207,21 +234,41 @@ function renderDashboard() {
       cardClass = 'never';
     }
 
-    const card = document.createElement('button');
-    card.type = 'button';
+    const card = document.createElement('div');
     card.className = `habit-quick-card${logged ? ' registered' : ''}`;
     card.dataset.id = ev.id;
-    card.setAttribute('aria-label', `${ev.name} - ${logged ? 'Registrado hoy. Tocá para desmarcar' : 'Tocá para registrar hoy'}`);
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `${ev.name} - ${logged ? `Registrado ${todayCount} ${todayCount === 1 ? 'vez' : 'veces'} hoy. Tocá para sumar otro registro` : 'Tocá para registrar hoy'}`);
 
     card.innerHTML = `
       <div class="quick-card-emoji">${ev.emoji || '✨'}</div>
       <div class="quick-card-name">${escHtml(ev.name)}</div>
       <div class="quick-card-counter ${cardClass}">
         <span>${counterText}</span>
-      </div>`;
+      </div>
+      ${todayCount > 0 ? `
+      <button type="button" class="quick-card-undo" aria-label="Deshacer el último registro de hoy">
+        <span class="quick-card-undo-count">${todayCount}</span>
+        <span class="quick-card-undo-icon">↺</span>
+      </button>` : ''}`;
 
     card.addEventListener('click', () => {
-      toggleLog(ev.id);
+      addLog(ev.id, today);
+      renderEvents();
+      if (typeof renderStats === 'function') renderStats();
+    });
+
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      }
+    });
+
+    card.querySelector('.quick-card-undo')?.addEventListener('click', e => {
+      e.stopPropagation();
+      removeLastLog(ev.id, today);
       renderEvents();
       if (typeof renderStats === 'function') renderStats();
     });
@@ -557,7 +604,7 @@ function renderHistoryContent(eventId) {
   if (logs.length === 0) {
     listEl.innerHTML = '<div class="history-empty">Sin registros todavía 📭</div>';
   } else {
-    listEl.innerHTML = logs.map(log => {
+    listEl.innerHTML = logs.map((log, i) => {
       const d   = new Date(log.date + 'T12:00:00');
       const fmt = d.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       const rel = relativeTime(d);
@@ -565,8 +612,19 @@ function renderHistoryContent(eventId) {
         <div class="history-item-dot"></div>
         <div class="history-item-date">${fmt}</div>
         <div class="history-item-rel">${rel}</div>
+        <button type="button" class="history-item-delete" data-idx="${i}" aria-label="Eliminar este registro" title="Eliminar este registro">×</button>
       </div>`;
     }).join('');
+
+    listEl.querySelectorAll('.history-item-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const log = logs[Number(btn.dataset.idx)];
+        if (!log || !removeLogRef(log)) return;
+        renderHistoryContent(eventId);
+        renderHistCal();
+        renderEvents(); // keep home & stats in sync
+      });
+    });
   }
 }
 
@@ -618,7 +676,11 @@ function renderHistCal() {
 
   const today = getTodayStr();
   const logs  = getLogs();
-  const eventLogs = new Set(logs.filter(l => l.eventId === historyEventId).map(l => l.date));
+  const countByDate = {};
+  logs.forEach(l => {
+    if (l.eventId !== historyEventId) return;
+    countByDate[l.date] = (countByDate[l.date] || 0) + 1;
+  });
 
   const monthDate = new Date(histCalYear, histCalMonth, 1);
   label.textContent = monthDate.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
@@ -637,7 +699,8 @@ function renderHistCal() {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${histCalYear}-${String(histCalMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const logged  = eventLogs.has(dateStr);
+    const count   = countByDate[dateStr] || 0;
+    const logged  = count > 0;
     const isFuture = dateStr > today;
 
     const cell = document.createElement('div');
@@ -646,6 +709,9 @@ function renderHistCal() {
       (logged ? ' hist-logged' : '') +
       (isFuture ? ' cal-future' : '');
     cell.dataset.date = dateStr;
+    cell.title = logged
+      ? `${count} registro${count === 1 ? '' : 's'} — tocá para sumar, mantené presionado para quitar uno`
+      : 'Tocá para registrar este día';
 
     const num = document.createElement('div');
     num.className = 'cal-day-num';
@@ -653,41 +719,80 @@ function renderHistCal() {
     cell.appendChild(num);
 
     if (logged) {
-      const dot = document.createElement('div');
-      dot.className = 'cal-dots';
-      dot.innerHTML = '<div class="cal-dot"></div>';
-      cell.appendChild(dot);
+      const dots = document.createElement('div');
+      dots.className = 'cal-dots';
+      const maxDots = Math.min(count, 3);
+      for (let i = 0; i < maxDots; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'cal-dot';
+        dots.appendChild(dot);
+      }
+      if (count > 3) {
+        const more = document.createElement('div');
+        more.className = 'cal-dot-more';
+        dots.appendChild(more);
+      }
+      cell.appendChild(dots);
     }
 
     if (!isFuture) {
-      cell.addEventListener('click', () => toggleHistCalDay(dateStr));
+      let holdTimer = null;
+      let didHold   = false;
+      const startHold = () => {
+        didHold = false;
+        holdTimer = setTimeout(() => {
+          didHold = true;
+          removeHistCalLog(dateStr);
+        }, 550);
+      };
+      const cancelHold = () => {
+        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+      };
+      cell.addEventListener('pointerdown', startHold);
+      cell.addEventListener('pointerup', cancelHold);
+      cell.addEventListener('pointerleave', cancelHold);
+      cell.addEventListener('pointercancel', cancelHold);
+      cell.addEventListener('click', () => {
+        if (didHold) { didHold = false; return; }
+        addHistCalLog(dateStr);
+      });
     }
     grid.appendChild(cell);
   }
 }
 
-function toggleHistCalDay(dateStr) {
-  const logs   = getLogs();
-  const idx    = logs.findIndex(l => l.eventId === historyEventId && l.date === dateStr);
-  const fb     = document.getElementById('hist-cal-feedback');
-  const [y,m,d] = dateStr.split('-').map(Number);
-  const date   = new Date(y, m-1, d);
-  const fmt    = date.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
+function fmtHistCalDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
+}
 
-  if (idx >= 0) {
-    logs.splice(idx, 1);
-    saveLogs(logs);
-    if (fb) { fb.textContent = `✕ Registro del ${fmt} eliminado`; fb.className = 'hist-cal-feedback error'; fb.hidden = false; }
-  } else {
-    logs.push({ eventId: historyEventId, date: dateStr, ts: new Date(dateStr + 'T12:00:00').getTime() });
-    saveLogs(logs);
-    if (fb) { fb.textContent = `✓ Registro agregado para el ${fmt}`; fb.className = 'hist-cal-feedback success'; fb.hidden = false; }
-  }
-  if (fb) setTimeout(() => { fb.hidden = true; }, 2000);
+function showHistCalFeedback(text, kind) {
+  const fb = document.getElementById('hist-cal-feedback');
+  if (!fb) return;
+  fb.textContent = text;
+  fb.className   = 'hist-cal-feedback ' + kind;
+  fb.hidden      = false;
+  setTimeout(() => { fb.hidden = true; }, 2000);
+}
 
+// Tapping a day always adds a new log (a habit can be logged more than once
+// per day); holding a day removes the most recently added log for it.
+function addHistCalLog(dateStr) {
+  addLog(historyEventId, dateStr, new Date(dateStr + 'T12:00:00').getTime());
+  showHistCalFeedback(`✓ Registro agregado para el ${fmtHistCalDate(dateStr)}`, 'success');
   renderHistCal();
   renderHistoryContent(historyEventId);
   renderEvents(); // keep home in sync
+}
+
+function removeHistCalLog(dateStr) {
+  const removed = removeLastLog(historyEventId, dateStr);
+  if (removed) {
+    showHistCalFeedback(`✕ Registro del ${fmtHistCalDate(dateStr)} eliminado`, 'error');
+    renderHistCal();
+    renderHistoryContent(historyEventId);
+    renderEvents(); // keep home in sync
+  }
 }
 
 document.getElementById('hist-cal-prev')?.addEventListener('click', () => {
@@ -1107,14 +1212,16 @@ function renderCalendar() {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const count   = logCountByDay[dateStr] || 0;
+    const level   = heatLevel(count);
     const isToday = dateStr === today;
     const isSel   = dateStr === calSelectedDate;
 
     const cell = document.createElement('div');
-    cell.className = 'cal-day' +
+    cell.className = 'cal-day heat-' + level +
       (isToday ? ' today' : '') +
       (isSel   ? ' selected' : '');
     cell.dataset.date = dateStr;
+    cell.title = count > 0 ? `${count} registro${count === 1 ? '' : 's'}` : 'Sin registros';
 
     // Number
     const num = document.createElement('div');
@@ -1122,27 +1229,26 @@ function renderCalendar() {
     num.textContent = d;
     cell.appendChild(num);
 
-    // Dots (max 3 visible + 1 overflow)
+    // Heat count label
     if (count > 0) {
-      const dots = document.createElement('div');
-      dots.className = 'cal-dots';
-      const maxDots  = Math.min(count, 3);
-      for (let i = 0; i < maxDots; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'cal-dot';
-        dots.appendChild(dot);
-      }
-      if (count > 3) {
-        const more = document.createElement('div');
-        more.className = 'cal-dot-more';
-        dots.appendChild(more);
-      }
-      cell.appendChild(dots);
+      const cnt = document.createElement('div');
+      cnt.className = 'cal-heat-count';
+      cnt.textContent = count;
+      cell.appendChild(cnt);
     }
 
     cell.addEventListener('click', () => selectCalDay(dateStr));
     grid.appendChild(cell);
   }
+}
+
+// Buckets a day's log count into a heat intensity level (0-4), GitHub-style.
+function heatLevel(count) {
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count <= 3) return 2;
+  if (count <= 6) return 3;
+  return 4;
 }
 
 function selectCalDay(dateStr) {
@@ -1170,24 +1276,29 @@ function openCalPanel(dateStr) {
   panelDate.textContent = date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   // Build event rows
-  const logs   = getLogs();
+  const logs = getLogs();
   const events = getEvents();
-  const logged = new Set(logs.filter(l => l.date === dateStr).map(l => l.eventId));
+  const countByEvent = {};
+  logs.forEach(l => {
+    if (l.date !== dateStr) return;
+    countByEvent[l.eventId] = (countByEvent[l.eventId] || 0) + 1;
+  });
 
   panelEvs.innerHTML = '';
 
-  const loggedEvents = events.filter(ev => logged.has(ev.id));
+  const loggedEvents = events.filter(ev => countByEvent[ev.id]);
 
   if (loggedEvents.length === 0) {
     panelEvs.innerHTML = '<p class="cal-empty-day">Sin registros este día.</p>';
   } else {
     loggedEvents.forEach(ev => {
+      const count = countByEvent[ev.id];
       const row = document.createElement('div');
       row.className = 'cal-event-row logged';
       row.innerHTML = `
         <span class="cal-event-emoji">${ev.emoji || '✨'}</span>
         <span class="cal-event-name">${escHtml(ev.name)}</span>
-        <span class="cal-event-badge done">✓ Hecho</span>
+        <span class="cal-event-badge done">${count > 1 ? `✓ ×${count}` : '✓ Hecho'}</span>
       `;
       panelEvs.appendChild(row);
     });
