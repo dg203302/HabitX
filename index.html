@@ -129,41 +129,9 @@
         ══════════════════════════════ -->
         <section id="Stats" class="section" aria-label="Estadísticas">
             <div class="section-inner">
-                <!-- Tarjetas KPI / Métricas destacadas -->
-                <div class="stats-kpi-grid">
-                    <div class="stats-kpi-card">
-                        <div class="stats-kpi-icon">📊</div>
-                        <div class="stats-kpi-info">
-                            <span class="stats-kpi-val" id="stats-total-logs">0</span>
-                            <span class="stats-kpi-lbl">Registros totales</span>
-                        </div>
-                    </div>
-                    <div class="stats-kpi-card">
-                        <div class="stats-kpi-icon">🔥</div>
-                        <div class="stats-kpi-info">
-                            <span class="stats-kpi-val" id="stats-active-streak">0</span>
-                            <span class="stats-kpi-lbl">Racha activa</span>
-                        </div>
-                    </div>
-                    <div class="stats-kpi-card">
-                        <div class="stats-kpi-icon">🎯</div>
-                        <div class="stats-kpi-info">
-                            <span class="stats-kpi-val" id="stats-monthly-pct">0%</span>
-                            <span class="stats-kpi-lbl">Cumplimiento mes</span>
-                        </div>
-                    </div>
-                    <div class="stats-kpi-card">
-                        <div class="stats-kpi-icon">⭐</div>
-                        <div class="stats-kpi-info">
-                            <span class="stats-kpi-val" id="stats-best-habit">—</span>
-                            <span class="stats-kpi-lbl">Hábito estrella</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Calendario de registros -->
+                <!-- Calendario de registros (Mapa de calor) -->
                 <div class="cal-section" id="cal-section">
-                    <button class="cal-toggle-btn" id="cal-toggle-btn" aria-expanded="false" aria-controls="cal-body">
+                    <div class="cal-static-header" id="cal-header-bar">
                         <div class="cal-toggle-title">
                             <svg class="cal-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" width="18" height="18">
@@ -176,14 +144,10 @@
                         </div>
                         <div class="cal-toggle-right">
                             <span class="cal-month-badge" id="cal-month-badge"></span>
-                            <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" width="18" height="18">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
                         </div>
-                    </button>
+                    </div>
 
-                    <div class="cal-body" id="cal-body" hidden>
+                    <div class="cal-body" id="cal-body">
                         <div class="cal-header">
                             <button class="cal-nav-btn" id="cal-prev" aria-label="Mes anterior">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
@@ -232,8 +196,8 @@
                 </div>
 
                 <!-- Gráfico 1: Evolución temporal -->
-                <div class="stats-chart-card collapsible-card" id="card-evolution">
-                    <div class="stats-chart-header" id="header-evolution" role="button" tabindex="0" aria-expanded="true" aria-controls="stats-evolution-body">
+                <div class="stats-chart-card" id="card-evolution">
+                    <div class="stats-chart-header" id="header-evolution">
                         <div class="stats-chart-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
                                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -246,11 +210,6 @@
                                 <option value="14" selected>Últimos 14 días</option>
                                 <option value="30">Últimos 30 días</option>
                             </select>
-                            <button class="stats-card-toggle-btn" type="button" aria-label="Colapsar o expandir">
-                                <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                            </button>
                         </div>
                     </div>
                     <div class="stats-chart-body" id="stats-evolution-body">
@@ -259,8 +218,8 @@
                 </div>
 
                 <!-- Gráfico 2: Distribución por Porcentaje de Hábitos -->
-                <div class="stats-chart-card collapsible-card" id="card-donut">
-                    <div class="stats-chart-header" id="header-donut" role="button" tabindex="0" aria-expanded="true" aria-controls="stats-donut-body">
+                <div class="stats-chart-card" id="card-donut">
+                    <div class="stats-chart-header" id="header-donut">
                         <div class="stats-chart-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
                                 <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
@@ -272,11 +231,6 @@
                             <select id="stats-donut-month-select" class="stats-select" aria-label="Filtrar por mes">
                                 <option value="all">Todos los meses</option>
                             </select>
-                            <button class="stats-card-toggle-btn" type="button" aria-label="Colapsar o expandir">
-                                <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                            </button>
                         </div>
                     </div>
                     <div class="stats-chart-body" id="stats-donut-body">
@@ -288,8 +242,8 @@
                 </div>
 
                 <!-- Gráfico 3: Hábitos por día de la semana -->
-                <div class="stats-chart-card collapsible-card" id="card-weekday">
-                    <div class="stats-chart-header" id="header-weekday" role="button" tabindex="0" aria-expanded="true" aria-controls="stats-weekday-body">
+                <div class="stats-chart-card" id="card-weekday">
+                    <div class="stats-chart-header" id="header-weekday">
                         <div class="stats-chart-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
                                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -299,13 +253,6 @@
                             </svg>
                             <span>Constancia por día de la semana</span>
                         </div>
-                        <div class="stats-chart-actions">
-                            <button class="stats-card-toggle-btn" type="button" aria-label="Colapsar o expandir">
-                                <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                            </button>
-                        </div>
                     </div>
                     <div class="stats-chart-body" id="stats-weekday-body">
                         <div class="stats-bar-chart" id="stats-weekday-chart"></div>
@@ -313,8 +260,8 @@
                 </div>
 
                 <!-- Desglose por Evento -->
-                <div class="stats-chart-card collapsible-card" id="card-breakdown">
-                    <div class="stats-chart-header" id="header-breakdown" role="button" tabindex="0" aria-expanded="true" aria-controls="stats-breakdown-body">
+                <div class="stats-chart-card" id="card-breakdown">
+                    <div class="stats-chart-header" id="header-breakdown">
                         <div class="stats-chart-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="chart-icon">
                                 <line x1="8" y1="6" x2="21" y2="6"/>
@@ -330,11 +277,6 @@
                             <select id="stats-breakdown-month-select" class="stats-select" aria-label="Filtrar por mes">
                                 <option value="all">Todos los meses</option>
                             </select>
-                            <button class="stats-card-toggle-btn" type="button" aria-label="Colapsar o expandir">
-                                <svg class="cal-toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
-                                    <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                            </button>
                         </div>
                     </div>
                     <div class="stats-chart-body" id="stats-breakdown-body">

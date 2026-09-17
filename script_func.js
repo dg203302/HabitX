@@ -102,34 +102,17 @@ seedIfEmpty();
 // ─────────────────────────────────────────
 const navBtns  = document.querySelectorAll('.nav-btn[data-section]');
 const sections = document.querySelectorAll('.section');
+const appMain  = document.querySelector('.app-main');
 
-function navigateTo(sectionId) {
-  sections.forEach(s => s.classList.remove('active'));
-  navBtns.forEach(b => { b.classList.remove('active'); b.removeAttribute('aria-current'); });
+const headerTitles = {
+  Home:   { title: 'Mis Eventos',    subtitle: 'Registrá tu progreso de hoy' },
+  Habits: { title: 'Mis Hábitos',    subtitle: 'Gestioná y editá tus rutinas' },
+  Add:    { title: 'Nuevo Evento',   subtitle: 'Definí qué querés trackear' },
+  Stats:  { title: 'Estadísticas',   subtitle: 'Análisis de tu rendimiento y constancia' },
+  Config: { title: 'Configuración', subtitle: 'Personalizá tu experiencia' },
+};
 
-  // Drive CSS header-hide via data attribute on body
-  document.body.dataset.section = sectionId;
-
-  const target = document.getElementById(sectionId);
-  if (target) {
-    target.classList.add('active');
-    // restart animation
-    target.style.animation = 'none';
-    target.offsetHeight;
-    target.style.animation = '';
-  }
-
-  const btn = document.querySelector(`.nav-btn[data-section="${sectionId}"]`);
-  if (btn) { btn.classList.add('active'); btn.setAttribute('aria-current', 'page'); }
-
-  // Update header title & subtitle
-  const headerTitles = {
-    Home:   { title: 'Mis Eventos',    subtitle: 'Registrá tu progreso de hoy' },
-    Habits: { title: 'Mis Hábitos',    subtitle: 'Gestioná y editá tus rutinas' },
-    Add:    { title: 'Nuevo Evento',   subtitle: 'Definí qué querés trackear' },
-    Stats:  { title: 'Estadísticas',   subtitle: 'Análisis de tu rendimiento y constancia' },
-    Config: { title: 'Configuración', subtitle: 'Personalizá tu experiencia' },
-  };
+function updateHeaderInfo(sectionId) {
   const info = headerTitles[sectionId];
   if (info) {
     const titleEl    = document.getElementById('header-title');
@@ -137,15 +120,49 @@ function navigateTo(sectionId) {
     if (titleEl)    titleEl.textContent    = info.title;
     if (subtitleEl) subtitleEl.textContent = info.subtitle;
   }
+}
 
-  // Refresh home on every visit
+function refreshSectionData(sectionId) {
   if (sectionId === 'Home') renderDashboard();
-  // Refresh habits on every visit
   if (sectionId === 'Habits') renderHabits();
-  // Refresh add-cal on every visit to Add
   if (sectionId === 'Add') { if (typeof renderAddCal === 'function') renderAddCal(); }
-  // Refresh stats on every visit to Stats
   if (sectionId === 'Stats') { if (typeof renderStats === 'function') renderStats(); }
+}
+
+let isProgrammaticScroll = false;
+let programmaticScrollTimer = null;
+
+function navigateTo(sectionId, smooth = true) {
+  const target = document.getElementById(sectionId);
+  if (!target) return;
+
+  sections.forEach(s => s.classList.toggle('active', s.id === sectionId));
+  navBtns.forEach(b => {
+    const isCurrent = b.dataset.section === sectionId;
+    b.classList.toggle('active', isCurrent);
+    if (isCurrent) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+
+  const configBtn = document.getElementById('header-config-btn');
+  if (configBtn) configBtn.classList.toggle('active', sectionId === 'Config');
+
+  document.body.dataset.section = sectionId;
+  updateHeaderInfo(sectionId);
+  refreshSectionData(sectionId);
+
+  if (appMain) {
+    isProgrammaticScroll = true;
+    if (programmaticScrollTimer) clearTimeout(programmaticScrollTimer);
+    programmaticScrollTimer = setTimeout(() => {
+      isProgrammaticScroll = false;
+    }, 550);
+
+    appMain.scrollTo({
+      left: target.offsetLeft,
+      behavior: smooth ? 'smooth' : 'auto'
+    });
+  }
 }
 
 navBtns.forEach(btn => {
@@ -157,6 +174,58 @@ navBtns.forEach(btn => {
 
 document.getElementById('header-config-btn')?.addEventListener('click', () => {
   navigateTo('Config');
+});
+
+// Sync bottom dock and header when user scrolls/swipes horizontally
+if (appMain) {
+  let scrollDebounce = null;
+  appMain.addEventListener('scroll', () => {
+    if (isProgrammaticScroll) return;
+    if (scrollDebounce) clearTimeout(scrollDebounce);
+    scrollDebounce = setTimeout(() => {
+      const scrollLeft = appMain.scrollLeft;
+      let closest = null;
+      let minDiff = Infinity;
+
+      sections.forEach(s => {
+        const diff = Math.abs(s.offsetLeft - scrollLeft);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = s;
+        }
+      });
+
+      if (closest && document.body.dataset.section !== closest.id) {
+        const sectionId = closest.id;
+        document.body.dataset.section = sectionId;
+
+        sections.forEach(s => s.classList.toggle('active', s.id === sectionId));
+        navBtns.forEach(b => {
+          const isCurrent = b.dataset.section === sectionId;
+          b.classList.toggle('active', isCurrent);
+          if (isCurrent) b.setAttribute('aria-current', 'page');
+          else b.removeAttribute('aria-current');
+        });
+
+        const configBtn = document.getElementById('header-config-btn');
+        if (configBtn) configBtn.classList.toggle('active', sectionId === 'Config');
+
+        updateHeaderInfo(sectionId);
+        refreshSectionData(sectionId);
+      }
+    }, 50);
+  }, { passive: true });
+}
+
+window.addEventListener('resize', () => {
+  const currentId = document.body.dataset.section || 'Home';
+  const target = document.getElementById(currentId);
+  if (target && appMain) {
+    appMain.scrollTo({ left: target.offsetLeft, behavior: 'auto' });
+  }
+  if (currentId === 'Stats' && typeof renderEvolutionChart === 'function') {
+    renderEvolutionChart();
+  }
 });
 
 // ─────────────────────────────────────────
@@ -201,6 +270,7 @@ function renderDashboard() {
   events.forEach(ev => {
     const todayCount = logs.filter(l => l.eventId === ev.id && l.date === today).length;
     const logged = todayCount > 0;
+    const heatLevel = Math.min(todayCount, 4);
 
     // Calculate last seen counter for this specific event
     const evLogs = logs
@@ -221,7 +291,7 @@ function renderDashboard() {
       daysSince = Math.round((todayDate - last) / 86400000);
 
       if (daysSince === 0) {
-        counterText = '✓ Hoy';
+        counterText = todayCount > 1 ? `✓ Hoy ×${todayCount}` : '✓ Hoy';
         cardClass   = 'recent';
       } else if (daysSince === 1) {
         counterText = 'Ayer';
@@ -235,7 +305,7 @@ function renderDashboard() {
     }
 
     const card = document.createElement('div');
-    card.className = `habit-quick-card${logged ? ' registered' : ''}`;
+    card.className = `habit-quick-card${logged ? ` registered heat-${heatLevel}` : ''}`;
     card.dataset.id = ev.id;
     card.tabIndex = 0;
     card.setAttribute('role', 'button');
@@ -1337,16 +1407,10 @@ document.getElementById('cal-day-panel-close')?.addEventListener('click', () => 
   renderCalendar();
 });
 
-// Collapsible Calendar toggle listener
-const calToggleBtn = document.getElementById('cal-toggle-btn');
+// Heatmap calendar body is permanently visible and non-reducible
 const calBody = document.getElementById('cal-body');
-
-if (calToggleBtn && calBody) {
-  calToggleBtn.addEventListener('click', () => {
-    const isExpanded = calToggleBtn.getAttribute('aria-expanded') === 'true';
-    calToggleBtn.setAttribute('aria-expanded', !isExpanded);
-    calBody.hidden = isExpanded;
-  });
+if (calBody) {
+  calBody.hidden = false;
 }
 
 // Initial render + refresh after toggle
@@ -1405,28 +1469,9 @@ function updateStatsMonthSelect(selectId, availableKeys, currentKey) {
 }
 
 function initStatsCollapsibles() {
-  document.querySelectorAll('.collapsible-card').forEach(card => {
-    const header = card.querySelector('.stats-chart-header');
-    const body = card.querySelector('.stats-chart-body');
-    if (!header || !body) return;
-
-    if (header.dataset.collapsibleInit) return;
-    header.dataset.collapsibleInit = 'true';
-
-    header.addEventListener('click', (e) => {
-      if (e.target.closest('select') || e.target.closest('option')) return;
-      const isExpanded = header.getAttribute('aria-expanded') === 'true';
-      header.setAttribute('aria-expanded', !isExpanded);
-      body.hidden = isExpanded;
-      if (!isExpanded && card.id === 'card-evolution') {
-        renderEvolutionChart();
-      }
-    });
-
-    const selects = header.querySelectorAll('select');
-    selects.forEach(sel => {
-      sel.addEventListener('click', e => e.stopPropagation());
-    });
+  // Los contenedores de estadísticas no se pueden contraer
+  document.querySelectorAll('.stats-chart-body').forEach(b => {
+    b.hidden = false;
   });
 }
 
