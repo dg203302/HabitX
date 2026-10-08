@@ -105,9 +105,7 @@ const sections = document.querySelectorAll('.section');
 const appMain  = document.querySelector('.app-main');
 
 const headerTitles = {
-  Home:   { title: 'Mis Eventos',    subtitle: 'Registrá tu progreso de hoy' },
-  Habits: { title: 'Mis Hábitos',    subtitle: 'Gestioná y editá tus rutinas' },
-  Add:    { title: 'Nuevo Evento',   subtitle: 'Definí qué querés trackear' },
+  Home:   { title: 'Mis Hábitos',    subtitle: 'Registrá tu progreso de hoy' },
   Stats:  { title: 'Estadísticas',   subtitle: 'Análisis de tu rendimiento y constancia' },
   Config: { title: 'Configuración', subtitle: 'Personalizá tu experiencia' },
 };
@@ -124,8 +122,6 @@ function updateHeaderInfo(sectionId) {
 
 function refreshSectionData(sectionId) {
   if (sectionId === 'Home') renderDashboard();
-  if (sectionId === 'Habits') renderHabits();
-  if (sectionId === 'Add') { if (typeof renderAddCal === 'function') renderAddCal(); }
   if (sectionId === 'Stats') { if (typeof renderStats === 'function') renderStats(); }
 }
 
@@ -144,8 +140,6 @@ function navigateTo(sectionId, smooth = true) {
     else b.removeAttribute('aria-current');
   });
 
-  const configBtn = document.getElementById('header-config-btn');
-  if (configBtn) configBtn.classList.toggle('active', sectionId === 'Config');
 
   document.body.dataset.section = sectionId;
   updateHeaderInfo(sectionId);
@@ -170,10 +164,6 @@ navBtns.forEach(btn => {
   btn.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateTo(btn.dataset.section); }
   });
-});
-
-document.getElementById('header-config-btn')?.addEventListener('click', () => {
-  navigateTo('Config');
 });
 
 // Sync bottom dock and header when user scrolls/swipes horizontally
@@ -207,9 +197,6 @@ if (appMain) {
           else b.removeAttribute('aria-current');
         });
 
-        const configBtn = document.getElementById('header-config-btn');
-        if (configBtn) configBtn.classList.toggle('active', sectionId === 'Config');
-
         updateHeaderInfo(sectionId);
         refreshSectionData(sectionId);
       }
@@ -241,6 +228,25 @@ updateHeaderDate();
 // ─────────────────────────────────────────
 //  RENDER HOME – DASHBOARD QUICK-LOG GRID
 // ─────────────────────────────────────────
+// ─────────────────────────────────────────
+//  REORDER HABITS (Drag & Drop)
+// ─────────────────────────────────────────
+function reorderEvents(fromId, toId) {
+  const events = getEvents();
+  const fromIdx = events.findIndex(e => e.id === fromId);
+  const toIdx   = events.findIndex(e => e.id === toId);
+  if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+
+  const [moved] = events.splice(fromIdx, 1);
+  events.splice(toIdx, 0, moved);
+  saveEvents(events);
+  renderDashboard();
+  if (typeof renderStats === 'function') renderStats();
+}
+
+// ─────────────────────────────────────────
+//  RENDER HOME – DASHBOARD QUICK-LOG GRID
+// ─────────────────────────────────────────
 function renderDashboard() {
   const grid   = document.getElementById('dashboard-grid') || document.getElementById('events-list');
   if (!grid) return;
@@ -259,15 +265,17 @@ function renderDashboard() {
         <button class="empty-cta" id="empty-dash-cta-btn">+ Crear hábito</button>
       </div>`;
     document.getElementById('empty-dash-cta-btn')
-      ?.addEventListener('click', () => {
-        navigateTo('Habits');
-        openCreateHabitModal();
-      });
+      ?.addEventListener('click', openCreateHabitModal);
     updateProgress(0, 0);
     return;
   }
 
-  events.forEach(ev => {
+  // Progress bar
+  const total = events.length;
+  const done  = events.filter(ev => isLoggedToday(ev.id)).length;
+  updateProgress(done, total);
+
+  events.forEach((ev, idx) => {
     const todayCount = logs.filter(l => l.eventId === ev.id && l.date === today).length;
     const logged = todayCount > 0;
     const heatLevel = Math.min(todayCount, 4);
@@ -307,171 +315,230 @@ function renderDashboard() {
     const card = document.createElement('div');
     card.className = `habit-quick-card${logged ? ` registered heat-${heatLevel}` : ''}`;
     card.dataset.id = ev.id;
+    card.dataset.index = idx;
     card.tabIndex = 0;
     card.setAttribute('role', 'button');
-    card.setAttribute('aria-label', `${ev.name} - ${logged ? `Registrado ${todayCount} ${todayCount === 1 ? 'vez' : 'veces'} hoy. Tocá para sumar otro registro` : 'Tocá para registrar hoy'}`);
+    card.setAttribute('draggable', 'true');
+    card.setAttribute('aria-label', `${ev.name} - ${logged ? `Registrado ${todayCount} ${todayCount === 1 ? 'vez' : 'veces'} hoy. Tocá para sumar otro registro` : 'Tocá para registrar hoy'}. Mantené presionado para opciones.`);
 
     card.innerHTML = `
-      <div class="quick-card-emoji">${ev.emoji || '✨'}</div>
+      <div class="quick-card-drag-handle" title="Arrastrar para ordenar" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
+          <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+          <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+        </svg>
+      </div>
+
+      ${todayCount > 0 ? `
+      <button type="button" class="quick-card-undo" aria-label="Deshacer el último registro de hoy" title="Deshacer registro">
+        <span class="quick-card-undo-icon">↺</span>
+      </button>` : ''}
+
+      <div class="quick-card-emoji-wrap">
+        <span class="quick-card-emoji">${ev.emoji || '✨'}</span>
+      </div>
+
       <div class="quick-card-name">${escHtml(ev.name)}</div>
+
       <div class="quick-card-counter ${cardClass}">
+        ${logged ? `<span class="counter-check">✓</span>` : ''}
         <span>${counterText}</span>
       </div>
-      ${todayCount > 0 ? `
-      <button type="button" class="quick-card-undo" aria-label="Deshacer el último registro de hoy">
-        <span class="quick-card-undo-count">${todayCount}</span>
-        <span class="quick-card-undo-icon">↺</span>
-      </button>` : ''}`;
+    `;
 
-    card.addEventListener('click', () => {
+    // ── Long press detection (~480ms) ──
+    let longPressTimer = null;
+    let pressVisualTimer = null;
+    let didLongPress = false;
+    let startX = 0, startY = 0;
+
+    const startPress = (e) => {
+      if (e.target.closest('.quick-card-undo') || e.target.closest('.quick-card-drag-handle')) return;
+      didLongPress = false;
+      const point = e.touches ? e.touches[0] : e;
+      startX = point.clientX;
+      startY = point.clientY;
+
+      pressVisualTimer = setTimeout(() => {
+        card.classList.add('card-pressing');
+      }, 70);
+
+      longPressTimer = setTimeout(() => {
+        didLongPress = true;
+        card.classList.remove('card-pressing');
+        if (navigator.vibrate) navigator.vibrate(50);
+        openDetailsModal(ev.id);
+      }, 480);
+    };
+
+    const cancelPress = () => {
+      clearTimeout(longPressTimer);
+      clearTimeout(pressVisualTimer);
+      card.classList.remove('card-pressing');
+    };
+
+    const movePress = (e) => {
+      const point = e.touches ? e.touches[0] : e;
+      const dx = Math.abs(point.clientX - startX);
+      const dy = Math.abs(point.clientY - startY);
+      if (dx > 10 || dy > 10) {
+        cancelPress();
+      }
+    };
+
+    // Touch events for mobile
+    card.addEventListener('touchstart', startPress, { passive: true });
+    card.addEventListener('touchmove', movePress, { passive: true });
+    card.addEventListener('touchend', (e) => {
+      cancelPress();
+      if (didLongPress) {
+        e.preventDefault();
+      }
+    });
+    card.addEventListener('touchcancel', cancelPress);
+
+    // Mouse events for desktop
+    card.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      startPress(e);
+    });
+    card.addEventListener('mousemove', movePress);
+    card.addEventListener('mouseup', cancelPress);
+    card.addEventListener('mouseleave', cancelPress);
+
+    // Context menu suppression on mobile and desktop
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      cancelPress();
+      openDetailsModal(ev.id);
+    });
+
+    // Quick tap to log
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.quick-card-undo') || e.target.closest('.quick-card-drag-handle')) return;
+      if (didLongPress) {
+        didLongPress = false;
+        return;
+      }
       addLog(ev.id, today);
       renderEvents();
       if (typeof renderStats === 'function') renderStats();
     });
 
-    card.addEventListener('keydown', e => {
+    card.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        card.click();
+        addLog(ev.id, today);
+        renderEvents();
+        if (typeof renderStats === 'function') renderStats();
       }
     });
 
-    card.querySelector('.quick-card-undo')?.addEventListener('click', e => {
+    // Undo click
+    card.querySelector('.quick-card-undo')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      e.preventDefault();
       removeLastLog(ev.id, today);
       renderEvents();
       if (typeof renderStats === 'function') renderStats();
     });
 
-    grid.appendChild(card);
-  });
+    // ── Desktop Drag & Drop ──
+    card.addEventListener('dragstart', (e) => {
+      cancelPress();
+      e.dataTransfer.setData('text/plain', ev.id);
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('is-dragging');
+    });
 
-  // Progress bar
-  const total = events.length;
-  const done  = events.filter(ev => isLoggedToday(ev.id)).length;
-  updateProgress(done, total);
-}
+    card.addEventListener('dragend', () => {
+      card.classList.remove('is-dragging');
+      document.querySelectorAll('.habit-quick-card').forEach(c => c.classList.remove('drag-over'));
+    });
 
-// ─────────────────────────────────────────
-//  RENDER HABITS – DETAILED LIST
-// ─────────────────────────────────────────
-function renderHabits() {
-  const list  = document.getElementById('habits-list');
-  const badge = document.getElementById('habits-total-badge');
-  if (!list) return;
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      card.classList.add('drag-over');
+    });
 
-  const events = getEvents();
-  const logs   = getLogs();
-  const today  = getTodayStr();
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
 
-  if (badge) {
-    badge.textContent = `${events.length} hábito${events.length === 1 ? '' : 's'}`;
-  }
-
-  list.innerHTML = '';
-
-  if (events.length === 0) {
-    list.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">🎯</div>
-        <div class="empty-title">No tenés hábitos creados</div>
-        <div class="empty-sub">Comenzá creando un hábito para construir tu rutina diaria</div>
-        <button class="empty-cta" id="empty-habits-cta-btn">+ Crear hábito</button>
-      </div>`;
-    document.getElementById('empty-habits-cta-btn')
-      ?.addEventListener('click', openCreateHabitModal);
-    return;
-  }
-
-  events.forEach(ev => {
-    const evLogs = logs
-      .filter(l => l.eventId === ev.id)
-      .sort((a, b) => b.date.localeCompare(a.date));
-
-    let lastRecordLabel = 'Nunca';
-    if (evLogs.length > 0) {
-      const lastDate = evLogs[0].date;
-      if (lastDate === today) {
-        lastRecordLabel = 'Hoy';
-      } else if (lastDate === getYesterdayStr()) {
-        lastRecordLabel = 'Ayer';
-      } else {
-        const [y, m, d] = lastDate.split('-').map(Number);
-        const last = new Date(y, m - 1, d);
-        lastRecordLabel = last.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+    card.addEventListener('drop', (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const fromId = e.dataTransfer.getData('text/plain');
+      const toId = ev.id;
+      if (fromId && toId && fromId !== toId) {
+        reorderEvents(fromId, toId);
       }
+    });
+
+    // ── Mobile Touch Drag Handle ──
+    const handle = card.querySelector('.quick-card-drag-handle');
+    if (handle) {
+      let touchDraggedCard = null;
+      let currentDropTarget = null;
+
+      handle.addEventListener('touchstart', () => {
+        cancelPress();
+        touchDraggedCard = card;
+        card.classList.add('is-dragging');
+        if (navigator.vibrate) navigator.vibrate(20);
+      }, { passive: true });
+
+      handle.addEventListener('touchmove', (e) => {
+        if (!touchDraggedCard) return;
+        const touch = e.touches[0];
+        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetCard = elem?.closest('.habit-quick-card');
+        
+        document.querySelectorAll('.habit-quick-card').forEach(c => c.classList.remove('drag-over'));
+        if (targetCard && targetCard !== touchDraggedCard) {
+          targetCard.classList.add('drag-over');
+          currentDropTarget = targetCard;
+        } else {
+          currentDropTarget = null;
+        }
+      }, { passive: true });
+
+      handle.addEventListener('touchend', () => {
+        if (touchDraggedCard) {
+          touchDraggedCard.classList.remove('is-dragging');
+          if (currentDropTarget) {
+            currentDropTarget.classList.remove('drag-over');
+            const fromId = touchDraggedCard.dataset.id;
+            const toId = currentDropTarget.dataset.id;
+            if (fromId && toId && fromId !== toId) {
+              reorderEvents(fromId, toId);
+            }
+          }
+          touchDraggedCard = null;
+          currentDropTarget = null;
+        }
+      });
+
+      handle.addEventListener('touchcancel', () => {
+        if (touchDraggedCard) {
+          touchDraggedCard.classList.remove('is-dragging');
+          touchDraggedCard = null;
+        }
+        if (currentDropTarget) {
+          currentDropTarget.classList.remove('drag-over');
+          currentDropTarget = null;
+        }
+      });
     }
 
-    const card = document.createElement('div');
-    card.className = 'habit-detail-card';
-    card.dataset.id = ev.id;
-
-    card.innerHTML = `
-      <div class="habit-detail-top">
-        <div class="habit-detail-emoji">${ev.emoji || '✨'}</div>
-        <div class="habit-detail-info">
-          <span class="habit-detail-name">${escHtml(ev.name)}</span>
-          <span class="habit-detail-desc">${escHtml(ev.desc || 'Sin descripción')}</span>
-          <div class="habit-detail-stats">
-            <span class="habit-stat-badge">📊 Total: <strong>${evLogs.length}</strong></span>
-            <span class="habit-stat-badge">📅 Último: <strong>${lastRecordLabel}</strong></span>
-          </div>
-        </div>
-      </div>
-      <div class="habit-detail-actions">
-        <button class="btn-habit-act act-edit" data-id="${ev.id}" title="Editar hábito">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
-          Editar
-        </button>
-        <button class="btn-habit-act act-hist" data-id="${ev.id}" title="Ver historial">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="1 4 1 10 7 10" />
-            <path d="M3.51 15a9 9 0 1 0 .49-4.5" />
-          </svg>
-          Historial
-        </button>
-        <button class="btn-habit-act act-delete" data-id="${ev.id}" title="Eliminar hábito">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M10 11v6M14 11v6" />
-            <path d="M9 6V4h6v2" />
-          </svg>
-          Eliminar
-        </button>
-      </div>`;
-
-    // Action handlers
-    card.querySelector('.act-edit').addEventListener('click', () => {
-      openConfigModal(ev.id);
-    });
-
-    card.querySelector('.act-hist').addEventListener('click', () => {
-      openHistoryModal(ev.id);
-    });
-
-    card.querySelector('.act-delete').addEventListener('click', async () => {
-      const ok = await showConfirm({
-        icon:        '🗑️',
-        title:       'Eliminar hábito',
-        message:     `¿Estás seguro de que querés eliminar "${ev.name}"? Se borrarán todos sus registros.`,
-        confirmText: 'Eliminar',
-      });
-      if (!ok) return;
-      const updatedEvents = getEvents().filter(e => e.id !== ev.id);
-      saveEvents(updatedEvents);
-      const updatedLogs = getLogs().filter(l => l.eventId !== ev.id);
-      saveLogs(updatedLogs);
-      renderDashboard();
-      renderHabits();
-      if (typeof renderStats === 'function') renderStats();
-    });
-
-    list.appendChild(card);
+    grid.appendChild(card);
   });
+}
+
+function renderHabits() {
+  // Consolidado en renderDashboard
 }
 
 function getYesterdayStr() {
@@ -482,7 +549,6 @@ function getYesterdayStr() {
 
 function renderEvents() {
   renderDashboard();
-  renderHabits();
 }
 
 function updateProgress(done, total) {
@@ -1466,6 +1532,114 @@ function updateStatsMonthSelect(selectId, availableKeys, currentKey) {
   } else {
     select.value = currentKey;
   }
+
+  // Sincronizar el dropdown personalizado
+  renderCustomSelectOptions(select);
+}
+
+function setupCustomSelects() {
+  document.querySelectorAll('select.stats-select').forEach(select => {
+    let wrapper = select.closest('.custom-select-wrapper');
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.className = 'custom-select-wrapper';
+      select.parentNode.insertBefore(wrapper, select);
+      wrapper.appendChild(select);
+
+      const trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'custom-select-trigger';
+      trigger.setAttribute('aria-haspopup', 'listbox');
+      trigger.setAttribute('aria-expanded', 'false');
+
+      const label = document.createElement('span');
+      label.className = 'custom-select-label';
+
+      const arrow = document.createElement('span');
+      arrow.className = 'custom-select-arrow';
+      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+      trigger.appendChild(label);
+      trigger.appendChild(arrow);
+      wrapper.appendChild(trigger);
+
+      const menu = document.createElement('div');
+      menu.className = 'custom-select-menu';
+      menu.setAttribute('role', 'listbox');
+      wrapper.appendChild(menu);
+
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = wrapper.classList.contains('open');
+        document.querySelectorAll('.custom-select-wrapper.open').forEach(w => {
+          if (w !== wrapper) {
+            w.classList.remove('open');
+            w.querySelector('.custom-select-trigger')?.setAttribute('aria-expanded', 'false');
+          }
+        });
+        if (isOpen) {
+          wrapper.classList.remove('open');
+          trigger.setAttribute('aria-expanded', 'false');
+        } else {
+          wrapper.classList.add('open');
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+
+    renderCustomSelectOptions(select);
+  });
+}
+
+function renderCustomSelectOptions(select) {
+  if (!select) return;
+  const wrapper = select.closest('.custom-select-wrapper');
+  if (!wrapper) return;
+
+  const trigger = wrapper.querySelector('.custom-select-trigger');
+  const label = wrapper.querySelector('.custom-select-label');
+  const menu = wrapper.querySelector('.custom-select-menu');
+  if (!trigger || !label || !menu) return;
+
+  menu.innerHTML = '';
+  const options = Array.from(select.options);
+  const selectedOption = select.options[select.selectedIndex] || options[0];
+
+  label.textContent = selectedOption ? selectedOption.text : '';
+
+  options.forEach(opt => {
+    const item = document.createElement('div');
+    item.className = 'custom-select-option' + (opt.value === select.value ? ' selected' : '');
+    item.setAttribute('role', 'option');
+    item.setAttribute('data-value', opt.value);
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = opt.text;
+
+    const checkSvg = document.createElement('span');
+    checkSvg.className = 'option-check';
+    checkSvg.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+    item.appendChild(textSpan);
+    item.appendChild(checkSvg);
+
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const prevVal = select.value;
+      select.value = opt.value;
+      label.textContent = opt.text;
+      menu.querySelectorAll('.custom-select-option').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      wrapper.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+
+      if (prevVal !== opt.value) {
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    menu.appendChild(item);
+  });
 }
 
 function initStatsCollapsibles() {
@@ -1536,6 +1710,9 @@ function renderStats() {
   const availableKeys = getStatsAvailableMonths(logs);
   updateStatsMonthSelect('stats-donut-month-select', availableKeys, currentKey);
   updateStatsMonthSelect('stats-breakdown-month-select', availableKeys, currentKey);
+
+  // Inicializar selectores personalizados con estilo oscuro y relieve
+  setupCustomSelects();
 
   // Initialize Collapsible Containers
   initStatsCollapsibles();
@@ -1844,3 +2021,27 @@ document.getElementById('stats-donut-month-select')?.addEventListener('change', 
 document.getElementById('stats-breakdown-month-select')?.addEventListener('change', () => {
   renderBreakdownList();
 });
+
+// Cerrar menús desplegables personalizados al hacer click fuera o presionar Escape
+document.addEventListener('click', () => {
+  document.querySelectorAll('.custom-select-wrapper.open').forEach(w => {
+    w.classList.remove('open');
+    w.querySelector('.custom-select-trigger')?.setAttribute('aria-expanded', 'false');
+  });
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.custom-select-wrapper.open').forEach(w => {
+      w.classList.remove('open');
+      w.querySelector('.custom-select-trigger')?.setAttribute('aria-expanded', 'false');
+    });
+  }
+});
+
+// Inicialización de selectores personalizados al cargar el script
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupCustomSelects);
+} else {
+  setupCustomSelects();
+}
